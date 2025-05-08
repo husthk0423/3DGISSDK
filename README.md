@@ -15,7 +15,15 @@
 <img width="1280" alt="微信图片_20250508184203" src="https://github.com/user-attachments/assets/c3b51e5b-dda4-4b80-8674-9450db8b01f1" />
 <img width="1280" alt="微信图片_20250508184200" src="https://github.com/user-attachments/assets/98bf9dc8-2909-4245-8edd-0d3cd11e277c" />
 <img width="1280" alt="微信图片_20250508184156" src="https://github.com/user-attachments/assets/df1e3a10-851b-4bef-a782-460d0c46b1f4" />
-<img width="1280" alt="微信图片_20250508184152" src="https://github.com/user-attachments/assets/368420d3-180d-46a4-95a0-64c80660a159" />
-## 联系 
+<img width="1280" alt="微信图片_20250508184152" src="https://github.com/user-attachments/assets/368420d3-180d-46a4-95a0-64c80660a159" /> 
+
+## 联系  
+ ## 1 完整版本、工作内推（武汉） 
+
+ <img src="https://github.com/user-attachments/assets/16a23a4f-2687-4848-8be7-b39eae562ee1" width="400" height="400"> 
+ 
+  ## 2 请我喝咖啡  
+  
+   <img src="https://github.com/user-attachments/assets/bf266697-9710-46ef-9673-9bd6c4d4acfd" width="400" height="400"> 
 
 
