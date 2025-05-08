@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wmts图层曝光</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/jscolor.min.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style>
+      .control-body {
+        margin-top: 10px;
+      }
+
+      .control-item > span:first-child {
+        width: 85px !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="tab-content">
+        <div class="tab-item" onclick="addVecLayer()"><span>矢量wmts图层</span></div>
+        <div class="tab-item" onclick="addImgLayer()"><span>影像wmts图层</span></div>
+      </div>
+
+      <div class="control-body">
+        <div class="control-item">
+          <span>颜色</span>
+          <input type="color" data-bind="value: color, valueUpdate: 'input'" />
+          <span class="num-text2" data-bind="text:color"></span>
+        </div>
+
+        <div class="control-item">
+          <span>高亮透明度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.1" data-bind="value: opacity, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: opacity, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>面边框颜色</span>
+          <input type="color" data-bind="value: strokeColor, valueUpdate: 'input'" />
+          <span class="num-text2" data-bind="text:strokeColor"></span>
+        </div>
+
+        <div class="control-item">
+          <span>面边框透明度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.1" data-bind="value: strokeOpacity, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: strokeOpacity, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>面边框宽度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="10" step="0.1" data-bind="value: strokeWidth, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>10)value=10" data-bind="value: strokeWidth, valueUpdate: 'input'" />
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script src="../js/tabToggle.js"></script>
+  <script>
+    var viewer;
+    var tabType;
+    var pieVec;
+    var pieImg;
+    var controlSchema = {
+      id: '鹤壁市行政区划',
+      display: true,
+      color: {}
+    };
+
+    var viewModel = {
+      color: '#0d5eab',
+      opacity: 0.6,
+      strokeColor: '#3bc1fd',
+      strokeOpacity: 0.8,
+      strokeWidth: 3
+    };
+
+    function createMap() {
+      var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: terrainUrl
+      });
+
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider,
+        selectionIndicator: false,
+        useBrowserRecommendedResolution: false,
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: true, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        imageryProvider: false,
+        fullscreenButton: true
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+
+      const tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.2854200261115, 34.77030942941649, 67512.37974491261), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(3.227559847851855),
+          pitch: Cesium.Math.toRadians(-34.573891606363006),
+          roll: Cesium.Math.toRadians(0.0022930481139383095)
+        }
+      });
+
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(inputChange);
+        }
+      }
+    }
+
+    function inputChange(e) {
+      tabType == 'vec' ? addVecLayer() : addImgLayer();
+    }
+
+    // 矢量wmts图层
+    function addVecLayer() {
+      removeLayerAll('vec');
+
+      for (let k in viewModel) {
+        if (viewModel[k]) {
+          controlSchema.color[k] = viewModel[k];
+        }
+      }
+
+      pieVec = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: `${layerConfig.azcxzq_Vec.layerUrl}&control={"otherDisplay": false, "layers":[${encodeURIComponent(JSON.stringify(controlSchema))}]}`,
+          layer: '',
+          style: '',
+          format: '',
+          tileMatrixSetID: '',
+          tileWidth: 512,
+          tileHeight: 512,
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+          maximumLevel: 22
+        })
+      );
+      viewer.imageryLayers.add(pieVec);
+    }
+
+    // 影像wmts图层
+    function addImgLayer() {
+      removeLayerAll('img');
+
+      pieImg = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: layerConfig.hb_Img_c.wmtsUrl,
+          layer: '',
+          style: 'default',
+          format: 'image/jpeg',
+          tileMatrixSetID: 'default028mm',
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 20,
+          tileWidth: 512,
+          tileHeight: 512
+        })
+      );
+      viewer.imageryLayers.add(pieImg);
+    }
+
+    // 删除图层
+    function removeLayerAll(type) {
+      tabType = type;
+      if (tabType == 'vec') {
+        $('.slider-content').css({ display: 'block' });
+      } else {
+        $('.slider-content').css({ display: 'none' });
+      }
+
+      if (pieVec) {
+        viewer.imageryLayers.remove(pieVec);
+        pieVec = null;
+      }
+
+      if (pieImg) {
+        viewer.imageryLayers.remove(pieImg);
+        pieImg = null;
+      }
+    }
+
+    function startup(Cesium) {
+      'use strict';
+      createMap();
+      addVecLayer();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

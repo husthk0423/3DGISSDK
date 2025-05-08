@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>视频流融合坐标转换</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../js/config.js"></script>
+    <style>
+      .control-item {
+        justify-content: flex-start;
+        margin-bottom: 5px;
+      }
+
+      .control-item span:first-child {
+        display: inline-block;
+        width: 130px;
+      }
+
+      .control-item span:last-child {
+        display: inline-block;
+        width: 90px;
+        padding: 0 5px;
+        box-sizing: border-box;
+      }
+
+      .box-item {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #fff;
+      }
+
+      .box-item span {
+        display: inline-block;
+      }
+
+      .box-item span:nth-child(1) {
+        width: 130px;
+      }
+
+      .box-item span:nth-child(2) {
+        width: 130px;
+        margin-left: 10px;
+      }
+
+      .btn-content{
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>show</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: show" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>positionX</span>
+          <input type="range" class="form-range" id="customRange" min="114.136424" max="114.140424" step="0.000001" data-bind="value: positionX, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<114.136424)value=114.136424;if(value>114.140424)value=114.140424" data-bind="value: positionX, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>positionY</span>
+          <input type="range" class="form-range" id="customRange" min="35.716116" max="35.720116" step="0.000001" data-bind="value: positionY, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<35.716116)value=35.716116;if(value>35.720116)value=35.720116" data-bind="value: positionY, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>positionZ</span>
+          <input type="range" class="form-range" id="customRange" min="-180.0" max="1000" step="0.1" data-bind="value: positionZ, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>1000)value=1000" data-bind="value: positionZ, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>focalDistance</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="200" step="0.01" data-bind="value: focalDistance, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>200)value=200" data-bind="value: focalDistance, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>alpha</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.1" data-bind="value: alpha, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: alpha, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>near</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.01" data-bind="value: near, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>10)value=10" data-bind="value: near, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>far</span>
+          <input type="range" class="form-range" id="customRange" min="10" max="1000" step="0.1" data-bind="value: far, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<10)value=10;if(value>1000)value=1000" data-bind="value: far, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>aspectRatio</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="5" step="0.01" data-bind="value: aspectRatio, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>5)value=5" data-bind="value: aspectRatio, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>heading</span>
+          <input type="range" class="form-range" id="customRange" min="-180" max="90" step="0.1" data-bind="value: heading, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>90)value=90" data-bind="value: heading, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>pitch</span>
+          <input type="range" class="form-range" id="customRange" min="-180" max="90" step="0.1" data-bind="value: pitch, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>90)value=90" data-bind="value: pitch, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>videoPlay</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: videoPlay" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>useMask</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: useMask" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>debug</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: debug" />
+          </div>
+        </div>
+      </div>
+
+      <div class="position-box">
+        <div class="box-item">
+          <span>计算交点总耗时</span>
+          <span class="total-time"></span>
+        </div>
+
+        <div class="box-item">
+          <span>转换后经度</span>
+          <span class="projection-lng"></span>
+        </div>
+
+        <div class="box-item">
+          <span>转换后纬度</span>
+          <span class="projection-lat"></span>
+        </div>
+
+        <div class="box-item">
+          <span>转换后高度</span>
+          <span class="projection-height"></span>
+        </div>
+      </div>
+
+      <div class="btn-content">
+        <button type="button" class="btn btn-outline-light btn-item" onclick="addVideo()">添加视频</button>
+        <button type="button" class="btn btn-outline-light btn-item" onclick="printXY(640, 368, 640, 0, 1344.95)">转换坐标</button>
+      </div>
+    </div>
+
+    <div class="loading-box hide">
+      <div class="loading">
+        <span>正在转换...</span>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var viewModel = {
+      show: true,
+      positionX: 114.136821,
+      positionY: 35.721389,
+      positionZ: 355,
+      position: { x: 114.136821, y: 35.721389, z: 355 },
+      focalDistance: 1,
+      alpha: 0.8,
+      near: 1,
+      far: 1000,
+      aspectRatio: 1.78,
+      heading: 15.28,
+      pitch: -89.225,
+      videoType: 'mp4',
+      videoPlay: true,
+      useMask: true,
+      debug: true,
+      maskUrl: `../../img/mask.png`,
+      videoSource: `../data/video/夺丰1号正射2分钟.mp4`
+    };
+    var cameraVideo;
+    var pickTerrain;
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider, // 加载地形
+        selectionIndicator: false, // 是否获取选择周指示器
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        imageryProvider: false, // 不加载cesium提供的图层
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: true, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        shouldAnimate: true
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      pickTerrain = new Cesium.PickTerrain(viewer);
+
+      var tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.13599643034433, 35.72096779575807, 244.90093638914743),
+        orientation: {
+          heading: Cesium.Math.toRadians(58.432780096519124),
+          pitch: Cesium.Math.toRadians(-28.018815862999553),
+          roll: 0
+        }
+      });
+    }
+
+    function addVideo() {
+      if (cameraVideo) return;
+      remvoeVideo();
+      setNodeInnerText({});
+
+      // 视频融合
+      cameraVideo = new Cesium.Video(viewer, viewModel);
+      viewer.scene.primitives.add(cameraVideo);
+
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      function updatePostProcess() {
+        cameraVideo.show = Boolean(viewModel.show);
+        cameraVideo.position = { x: Number(viewModel.positionX), y: Number(viewModel.positionY), z: Number(viewModel.positionZ) };
+        cameraVideo.focalDistance = Number(viewModel.focalDistance);
+        cameraVideo.alpha = Number(viewModel.alpha);
+        cameraVideo.near = Number(viewModel.near);
+        cameraVideo.far = Number(viewModel.far);
+        cameraVideo.aspectRatio = Number(viewModel.aspectRatio);
+        cameraVideo.heading = Number(viewModel.heading);
+        cameraVideo.pitch = Number(viewModel.pitch);
+        cameraVideo.videoPlay = Boolean(viewModel.videoPlay);
+        cameraVideo.useMask = Boolean(viewModel.useMask);
+        cameraVideo.debug = Boolean(viewModel.debug);
+      }
+    }
+
+    function remvoeVideo() {
+      if (cameraVideo) {
+        viewer.scene.primitives.remove(cameraVideo);
+        cameraVideo.destroy();
+        cameraVideo = null;
+      }
+    }
+
+    /**
+     * 获取到远平面上的坐标
+     * @param origin 相机位置
+     * @param orientation 相机望向的目标位置
+     * @param frustum 相机视椎体
+     * @param width 视频的宽度
+     * @param height 视频的高度
+     * @param pixelX 要查询点在视频中的像素位置，x坐标
+     * @param pixelY 要查询点在视频中的像素位置，y坐标
+     * @returns {Cartesian3}
+     */
+    function printXY(width, height, pixelX, pixelY) {
+      if (!cameraVideo) return;
+      var matrix = getMatrix(cameraVideo.cameraPosition, cameraVideo._orientation, cameraVideo._shadowMap._lightCamera.frustum);
+      PickFromRay1(cameraVideo.cameraPosition, matrix, width, height);
+    }
+
+    function getMatrix(origin, orientation, frustum) {
+      const Matrix3 = Cesium.Matrix3;
+      const Matrix4 = Cesium.Matrix4;
+      const Cartesian3 = Cesium.Cartesian3;
+
+      const scratchRotationMatrix = new Matrix3();
+      const scratchViewMatrix = new Matrix4();
+      const scratchInverseMatrix = new Matrix4();
+      const scratchXDirection = new Cartesian3();
+      const scratchYDirection = new Cartesian3();
+      const scratchZDirection = new Cartesian3();
+
+      const rotationMatrix = Matrix3.fromQuaternion(orientation, scratchRotationMatrix);
+      let x = scratchXDirection;
+      let y = scratchYDirection;
+      let z = scratchZDirection;
+
+      x = Matrix3.getColumn(rotationMatrix, 0, x);
+      y = Matrix3.getColumn(rotationMatrix, 1, y);
+      z = Matrix3.getColumn(rotationMatrix, 2, z);
+
+      Cartesian3.normalize(x, x);
+      Cartesian3.normalize(y, y);
+      Cartesian3.normalize(z, z);
+
+      Cartesian3.negate(x, x);
+
+      const view = Matrix4.computeView(origin, z, y, x, scratchViewMatrix);
+
+      const projection = frustum.projectionMatrix;
+      const viewProjection = Matrix4.multiply(projection, view, scratchInverseMatrix);
+      let inverseViewProjection = Matrix4.inverse(viewProjection, scratchInverseMatrix);
+
+      return inverseViewProjection;
+    }
+
+    function toCs3(matrix, width, height, pixelX, pixelY) {
+      let ptx = (pixelX / width) * 2 - 1; // 将x的像素坐标转换为-1到1之间的坐标
+      let pty = -((pixelY / height) * 2 - 1); // 将y的像素坐标转换为-1到1之间的坐标
+      let corner = new Cesium.Cartesian4(ptx, pty, 1, 1);
+      corner = Cesium.Matrix4.multiplyByVector(matrix, corner, corner);
+
+      // Reverse perspective divide
+      const w = 1.0 / corner.w;
+      Cesium.Cartesian3.multiplyByScalar(corner, w, corner);
+
+      let cs3 = new Cesium.Cartesian3(corner.x, corner.y, corner.z);
+      return cs3;
+    }
+
+    function PickFromRay1(origin, matrix, width, height) {
+      var t = new Date().getTime();
+      let targets = [];
+      for (let i = 0; i < 100; i++) {
+        for (let j = 0; j < 100; j++) {
+          var target = toCs3(matrix, width, height, i, j);
+          targets.push(target);
+        }
+      }
+
+      pickTerrain.pick(origin, targets, function (result) {
+        let lng = result[0];
+        let lat = result[1];
+        let height = result[2];
+        // console.log('总耗时' + (new Date().getTime() - t));
+        // alert(lng.toFixed(6) + ',' + lat.toFixed(6) + ',' + height);
+        setNodeInnerText({ time: `${new Date().getTime() - t} ms`, lng, lat, height });
+      });
+    }
+
+    function setNodeInnerText(param) {
+      $('.total-time')[0].innerText = param.time || '';
+      $('.projection-lng')[0].innerText = param.lng || '';
+      $('.projection-lat')[0].innerText = param.lat || '';
+      $('.projection-height')[0].innerText = param.height || '';
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

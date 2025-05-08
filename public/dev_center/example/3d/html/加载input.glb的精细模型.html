@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>加载input.glb的精细模型</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/CustomCesiumSDK/Cesium-BaseMap.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: false, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      shouldAnimate: true,
+      showStatusBar: false,
+      fullscreenButton: false,
+      imageryProvider: false,
+    });
+    viewer.scene.logarithmicDepthBuffer = true; // 加载精细模型时设置为 true
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 添加模型
+    let position = Cesium.Cartesian3.fromDegrees(114.30307720449109, 35.72318415092218, 1);
+    let hpRoll = new Cesium.HeadingPitchRoll();
+    let fixedFrameTransforms = Cesium.Transforms.localFrameToFixedFrameGenerator('north', 'west');
+    viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      url: '../data/gltf/input.glb',
+      modelMatrix: Cesium.Transforms.headingPitchRollToFixedFrame(position, hpRoll, Cesium.Ellipsoid.WGS84, fixedFrameTransforms),
+      scale: 5,
+    }));
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.29464928102695, 35.71869691318468, 240.29710151399144),
+      orientation: {
+        heading: Cesium.Math.toRadians(33.1012564700893),
+        pitch: Cesium.Math.toRadians(-13.415441919484255),
+        roll: 0
+      }
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>绘制点</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+		<style>
+		    body { margin: 0; padding: 0; }
+		    html, body, #map { height: 100%; }
+		</style>
+
+	</head>
+	<body>
+		<div id='map'></div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				pitch: 30,
+				zoom: 16,
+				maxTileCacheSize: 100,
+				fontName:'微软雅黑',
+				glyphUrl:'./fonts/{fontstack}/{range}.pbf',
+				center: [120.14597, 30.27377]
+			});
+			map.setLightIntensity(0.3);
+			var xyz = new Geoway.XYZLayer([
+				'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=sanwei_test1&tilesize=512&ratio=1'
+			], {
+				tileSize: 512
+			});
+			map.addLayer(xyz);
+			//label图层
+			var label = new Geoway.LabelLayer(
+				'http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512', {
+					tileSize: 512,
+					verticalLineColor: '#666666',
+					verticalLineScreenHeight: 0
+				});
+			map.addLayer(label);
+
+			var geoSourceLayer = new Geoway.GeoSourceLayer(map);
+			let feature = {};
+			feature.wkt = "POINT(120.14457 30.27377)";
+			feature.paintProperties = {
+				fillColor: '#ff0000',
+				fillOpacity: 0.5,
+				strokeColor: '#0000ff',
+				strokeWidth: 2,
+				strokeOpacity: 1.0,
+				//radius: 10,//像素半径
+				lngLatRadius: 0.0001,//经纬度半径
+				pitchWithMap: true
+			};
+			geoSourceLayer.addFeature(feature);
+			map.addLayer(geoSourceLayer);
+		</script>
+	</body>
+</html>

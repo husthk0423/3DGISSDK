@@ -1,0 +1,308 @@
+.panel-box {
+  width: 366px;
+  height: auto;
+  left: unset;
+  transform: unset;
+  right: 1%;
+}
+.panel-box .panel-body .layui-tab .layui-tab-title {
+  font-size: 14px;
+  color: #fff;
+}
+.panel-box .panel-body .layui-tab .layui-tab-title .layui-this {
+  color: #409eff;
+}
+.panel-box .panel-body .layui-tab .layui-tab-title .layui-this::after {
+  border: none;
+  border-bottom: 1px solid #409eff;
+}
+.panel-box .panel-body .layui-tab-content .model-btn-list {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px 10px;
+  box-sizing: border-box;
+}
+.panel-box .panel-body .layui-tab-content .model-btn-list .btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 92px;
+  height: 30px;
+  background: url('../../img/按钮.png') no-repeat center center;
+  background-size: 100% 100%;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+}
+.panel-box .panel-body .layui-tab-content .model-btn-list .btn:hover {
+  background: url('../../img/按钮_p.png') no-repeat center center;
+  background-size: 100% 100%;
+}
+.panel-box .panel-body .layui-tab-content .model-content {
+  max-height: 500px;
+  overflow-y: auto;
+}
+.panel-box .panel-body .layui-tab-content .model-content::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background: #b9b9b9;
+  border-radius: 5px;
+}
+.panel-box .panel-body .layui-tab-content .model-content::-webkit-scrollbar-button {
+  display: none;
+}
+.panel-box .panel-body .layui-tab-content .model-content::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #54b5ff;
+}
+.panel-box .panel-body .layui-tab-content .model-content::-webkit-scrollbar-track {
+  border-radius: 10px;
+  background: rgba(54, 87, 123, 0.9);
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-title {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding-left: 5px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #00b4ff;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-title span {
+  font-size: 14px;
+  color: #fff;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body {
+  display: flex;
+  flex-wrap: wrap;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 83px;
+  height: 96px;
+  margin: 0 0 5px 3px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item:nth-child(4n + 1) {
+  margin-left: 0;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item:hover {
+  border: 1px solid #00b4ff;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item img {
+  width: 61px;
+  height: 60px;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item span {
+  font-size: 14px;
+  color: #fff;
+}
+.panel-box .panel-body .layui-tab-content .model-content .model-card .card-body .model-item-this {
+  background-color: #00b4ff;
+}
+.panel-box .panel-body .layui-table {
+  margin-bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  font-size: 14px;
+  color: #fff;
+}
+.panel-box .panel-body .layui-table th {
+  padding: 9px;
+  box-sizing: border-box;
+}
+.panel-box .panel-body .layui-table td {
+  max-width: 120px;
+  padding: 0px 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panel-box .panel-body .layui-table .controls-btn {
+  display: flex;
+}
+.panel-box .panel-body .layui-table .controls-btn .layui-btn {
+  margin: 5px;
+}
+.panel-box .panel-body .empty-tips {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100px;
+  border: 1px solid #fff;
+  border-top: none;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: #fff;
+}
+.add-model {
+  right: 27%;
+  display: none;
+  width: 326px;
+}
+.add-model .layui-form-item {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #ccc;
+}
+.add-model .layui-form-item:last-child {
+  margin-bottom: 0px;
+}
+.add-model .layui-form-item .layui-form-label {
+  width: 25%;
+  padding: 0 10px 0 0;
+  box-sizing: border-box;
+  color: #fff;
+}
+.add-model .layui-form-item .layui-input-block,
+.add-model .layui-form-item .layui-input-inline,
+.add-model .layui-form-item .layui-upload-drag {
+  width: calc(100% - 25%);
+  margin: 0;
+  box-sizing: border-box;
+}
+.add-model .layui-form-item .layui-input,
+.add-model .layui-form-item .layui-anim-upbit,
+.add-model .layui-form-item .layui-upload-drag {
+  background-color: rgba(28, 91, 180, 0.4);
+  border: 1px solid #00b4ff;
+  border-radius: 5px;
+}
+.add-model .layui-form-item .layui-input {
+  height: 32px;
+  color: #fff;
+}
+.add-model .layui-form-item .layui-anim-upbit {
+  color: #fff;
+}
+.add-model .layui-form-item .layui-anim-upbit dd:hover {
+  background-color: #0796dc !important;
+}
+.add-model .layui-form-item .layui-this {
+  background-color: #0796dc;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview {
+  position: relative;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview img,
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview .img-mark {
+  width: 170px;
+  height: 90px;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview .img-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  cursor: pointer;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview .img-mark:hover {
+  display: block;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview .img-mark i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 25px;
+  color: #fff;
+}
+.add-model .layui-form-item .layui-upload-drag #ID-upload-demo-preview img:hover + .img-mark {
+  display: block;
+}
+.add-model .model-upload .layui-input-block {
+  display: flex;
+  align-items: center;
+}
+.add-model .model-upload .layui-input-block .layui-input {
+  width: 160px;
+}
+.add-model .upload-btn {
+  display: flex;
+  justify-content: flex-end;
+}
+.add-model .upload-btn .cancel-btn {
+  background: #fff;
+}
+.model-edit {
+  right: 27%;
+  display: none;
+  width: 406px;
+}
+.model-edit .form-box .form-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #fff;
+}
+.model-edit .form-box .form-item:last-child {
+  margin-bottom: 0px;
+}
+.model-edit .form-box .form-item label {
+  display: flex;
+  justify-content: flex-end;
+  width: 60px;
+  padding-right: 10px;
+  box-sizing: border-box;
+}
+.model-edit .form-box .form-item .layui-input {
+  width: calc(100% - 60px);
+  height: 32px;
+  background-color: rgba(28, 91, 180, 0.4);
+  border: 1px solid #00b4ff;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #fff;
+}
+.model-edit .form-box .form-item .layui-input::-webkit-outer-spin-button,
+.model-edit .form-box .form-item .layui-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.model-edit .form-box .form-item .slider-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: calc(100% - 60px);
+  height: 40px;
+}
+.model-edit .form-box .form-item .slider-box .slider {
+  width: 80%;
+  left: 10px;
+  bottom: 30%;
+  background-color: rgba(0, 0, 0, 0);
+}
+.model-edit .form-box .form-item .slider-box .layui-slider {
+  width: 60%;
+}
+.model-edit .form-box .form-item .slider-box .layui-slider-input {
+  width: 100px;
+  border-radius: 5px;
+  border: 1px solid #00b4ff;
+}
+.model-edit .form-box .form-item .slider-box .layui-slider-input .layui-input {
+  width: calc(100% - 20px);
+  border: none;
+}
+.model-edit .form-box .pos .layui-input {
+  width: 130px;
+}
+.model-edit .edit-btn {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+.model-edit .edit-btn .cancel-btn {
+  background: #fff;
+}

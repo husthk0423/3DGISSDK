@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html  style="overflow : hidden; ">
+<head>
+    <title>天地图矢量瓦片</title>
+    <meta name="keywords" content="矢量瓦片,矢量索引">
+    <meta name="description" content="矢量瓦片">
+    <meta name="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="js/jquery-3.1.1.js"></script>
+    <script src="js/uuid.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/CustomWebSDK.min.js"></script>
+
+</head>
+<style>
+    .maptype-container{
+        position:absolute; 
+        right: 20px; 
+        bottom: 5px; 
+        z-index: 10000;    
+        font-size: 12px;
+        color: #f9eded;
+    }
+    .image {
+        left: 5px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 -120px;
+        right: 10px;
+        z-index: 4;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+    }
+    .vector {
+        left: 80px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 0px;
+        right: 5px;
+        z-index: 3;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+        opacity: 0.5;
+    }
+    dt {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        font-size: 12px;
+        text-align: center;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWNicJ/XAAACoAFoZOWciwAAAABJRU5ErkJggg==);
+    }
+</style>
+<body onload="init()"  style="margin : 0; ">
+<div id="map" class="map" style ="position:absolute;bottom:0px;top:0px;width:100%"></div>
+<div class="maptype-container">
+    <div class="maptype">
+        <dl class="image" onclick="addLyr(1)">
+            <dt>影像</dt>
+        </dl>
+        <dl class="vector" onclick="addLyr(0)">
+            <dt>矢量</dt>
+        </dl>
+    </div>
+</div>
+
+<script>
+    var map = null;
+    var layers = [];
+    function init(){
+        map = L.map('map',{crs:L.CRS.CustomEPSG4326,center: {lon:120.15, lat:30.268},maxZoom: 20,zoom:18});
+        this.addVector(0);
+        this.bindEvent();
+    }
+    function addLyr(index){
+        map.removeLayer(layers[0]);
+        map.removeLayer(layers[1]);
+        if(index == 0){
+            this.addVector();
+        }else{
+            this.addImage();
+        }
+    }
+    function addVector(){
+        layers = [];
+        //添加底图
+        var layer = new L.GXYZ('https://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017',{tileSize:512,maxZoom: 20});
+        map.addLayer(layer);
+        layers.push(layer);
+
+        //添加注记图层
+        var labelLayer = new L.GWVTAnno({tileSize:512});
+        var dataSource = new Custom.URLDataSource();
+        dataSource.url = 'https://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017';
+        labelLayer.addDataSource(dataSource);
+
+        var dataSource1 =  new Custom.URLDataSource();
+        dataSource1.url = 'https://ditu.zjzwfw.gov.cn/mapserver/label/gasj/getDatas?x=${x}&y=${y}&l=${z}&styleId=gasj_gasj_20170911';
+        labelLayer.addDataSource(dataSource1);
+        map.addLayer(labelLayer);
+        layers.push(labelLayer);
+        /*map.on('click', function(e) {
+            var latlng =e.latlng;
+            var event = e.originalEvent;
+            //拾取要素
+            var features = layer.getFeatureByXY(event.x,event.y,function(layerFeatures){
+                //高亮
+                layer.highlightFeatures(layerFeatures,{color:"#ff00ff",opacity:0.4})
+            });
+        });*/
+    }
+    function addImage(){
+        layers = [];
+        // 影像
+        var imageLyr = L.tileLayer("http://t0.tianditu.com/img_c/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=c&TileMatrix={z}&TileRow={y}&TileCol={x}&FORMAT=tiles");
+        map.addLayer(imageLyr);
+        layers.push(imageLyr);
+
+        // 地名标注
+        var imageLabel = L.tileLayer("http://t0.tianditu.com/cia_c/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=c&TileMatrix={z}&TileRow={y}&TileCol={x}&FORMAT=tiles");
+        map.addLayer(imageLabel);
+        layers.push(imageLabel);
+    }
+    function bindEvent(){
+        $(".maptype").mouseover(function(){
+            $(this).children('.vector').stop().animate({left:"-10px",opacity:1},500);
+        });
+        $(".maptype").mouseout(function(){
+            $(this).children('.vector').stop().animate({left:"80px",opacity:0.5},500);
+        });
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wkt工具类</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="text-description">
+    <span>sdk提供wkt字符串转Primitive的接口和Primitive转wkt的接口，无需用户自己写解析方法。</span>
+  </div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    /**
+     * wkt工具类
+     * */
+    var MULTIPOLYGON = 'MULTIPOLYGON (((118.93069443900015 31.363271323000106, 118.93075923445588 31.363190607366334, 118.93116261545595 31.36351442636635, 118.93109782000022 31.36359514200018, 118.93069443900015 31.363271323000106)),((118.93089278300022 31.363075034000133, 118.93097062628897 31.362972092153996, 118.93137627328883 31.36327883715404, 118.93129843000008 31.363381779000008, 118.93089278300022 31.363075034000133)))';
+    var LINESTRING = 'LINESTRING(118.93069443900015 31.363271323000106, 118.93075923445588 31.363190607366334, 118.93116261545595 31.36351442636635)';
+    var POINT = 'POINT(118.9307866353685 31.3635859218509)';
+    var util = new Cesium.Wkt();
+
+    // 解析成可以显示的 primitive 对象
+    var primitives = util.readToPrimitives(MULTIPOLYGON, { fillColor: '#ff0' });
+    viewer.scene.primitives.add(primitives[0]);
+
+    // 解析成矢量对象
+    var readPolygon = util.read(MULTIPOLYGON);
+    var polygonInstances = readPolygon.getPolygonInstances({ fillColor: '#ff0', fillOpacity: 1 }); // 获取多边形 geomery 对象
+
+    var readLine = util.read(LINESTRING);
+    var lineInstances = readLine.getLineInstances({ strokeColor: '#DC143C', strokeOpacity: 1 }); // 获取线 geomery 对象
+    lineInstances[0].geometry._width = 5;
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: lineInstances[0],
+        appearance: new Cesium.PolylineColorAppearance(),
+      })
+    );
+
+    var readPoint = util.read(POINT);
+    var pointInstances = readPoint.getPointInstances({ fillColor: '#ff0', fillOpacity: 1 }); // 获取点 geomery 对象
+    var pointPrimitives = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+    pointPrimitives.add({
+      id: 'point',
+      position: Cesium.Cartesian3.fromDegrees(pointInstances[0].x, pointInstances[0].y),
+      show: true,
+      color: Cesium.Color.SKYBLUE,
+      pixelSize: 10,
+      outlineColor: Cesium.Color.YELLOW,
+      outlineWidth: 3
+    });
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(118.92798732596822, 31.363309955369278, 254.4336064441438),
+      orientation: {
+        heading: Cesium.Math.toRadians(90.21770585974397),
+        pitch: Cesium.Math.toRadians(-40.28060214261722),
+        roll: 0
+      }
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

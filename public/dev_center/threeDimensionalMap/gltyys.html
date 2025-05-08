@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>高亮图元要素</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+		<style>
+			body {margin: 0;padding: 0;}
+			html,body,#map {height: 100%;}
+		</style>
+	</head>
+	<body>
+		<div id='map'></div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				zoom: 18,
+				maxTileCacheSize: 100,
+				bearing: 0,
+				pitch: 0,
+				fontName: '微软雅黑',
+				glyphUrl: './fonts/{fontstack}/{range}.pbf',
+				center: [120.18415392703946, 30.26019307816449]
+			});
+
+			map.setLightIntensity(0.3);
+
+			//混合图层
+			var mixLayer = new Geoway.MixLayer(
+				'http://ditu.zjzwfw.gov.cn/mapserver/data/zjvmap/getData?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&return_type=stream_snappy', {
+					tileSize: 512,
+					useFbo: true,
+					ratio: 1,
+					tileFaceTime: 0,
+					heightProperty: 'floor',
+					roofColor: '#E7DED0',
+					wallColor: '#E7DED0',
+					fillAlpha: 1,
+					heightScale: 3.2,
+					style: null,
+					needDecode:false,
+				});
+			map.addLayer(mixLayer);
+			//植被_面状植被: id:934381 
+			var highObj = {};
+			var id = 934381;
+			highObj['植被_面状植被']={934381:{}};
+				
+			mixLayer.highlightFeatures(highObj, {color: "red", opacity: 0.6});
+			
+			var that = this;
+			map.on('click', function(e) {
+				//查询底图图元
+				var level = that.map.getZoom();
+				that.mixLayer.getVectorByLnglat(e.lngLat,level,function(bFeature){
+				    if (!bFeature) return;
+				    //默认不选中行政区划面
+				    delete bFeature['政区境界_行政区划面'];
+				    var hasFeature = false;
+				    for(var key in bFeature){
+				        hasFeature = true;
+				        break;
+				    }
+				    if(hasFeature == false){return;}
+				    that.mixLayer.highlightFeatures(bFeature, {color: "#f00fff", opacity: 0.6});
+				});
+			});
+		</script>
+	</body>
+</html>

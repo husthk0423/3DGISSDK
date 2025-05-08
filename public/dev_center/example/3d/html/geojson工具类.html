@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>geojson工具类</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+  <div class="text-description">
+    <span>sdk提供geojson转Primitive的接口和Primitive转geojson的接口，无需用户自己写解析方法。</span>
+  </div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    /**
+     * geojson工具类
+     * */
+    var MultiPolygon = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "GeoJSON",
+          "geometry": {
+            "type": "MultiPolygon",
+            "coordinates": [
+              [
+                [
+                  [
+                    114.29216773990412,
+                    35.72639254102051
+                  ],
+                  [
+                    114.29148865625226,
+                    35.72206164850294
+                  ],
+                  [
+                    114.29335439966357,
+                    35.72147885567013
+                  ],
+                  [
+                    114.29437937735749,
+                    35.72577026722832
+                  ],
+                  [
+                    114.29216773990412,
+                    35.72639254102051
+                  ]
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    };
+    var MultiPolygon2 = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "GeoJSON",
+          "geometry": {
+            "type": "MultiPolygon",
+            "coordinates": [
+              [
+                [
+                  [
+                    114.2954776733162,
+                    35.72529676778541
+                  ],
+                  [
+                    114.29852137773996,
+                    35.72448683348047
+                  ],
+                  [
+                    114.29597624498068,
+                    35.72071539028841
+                  ],
+                  [
+                    114.29398656904816,
+                    35.72124147016236
+                  ],
+                  [
+                    114.2954776733162,
+                    35.72529676778541
+                  ]
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    };
+    var LineString = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "GeoJSON",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                114.30181476057408,
+                35.72619658402397
+              ],
+              [
+                114.2976348412531,
+                35.72225559253723
+              ],
+              [
+                114.29715385381692,
+                35.72001546026916
+              ]
+            ]
+          }
+        }
+      ]
+    };
+    var Point = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "GeoJSON",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [114.30027496455422, 35.7219786173573]
+          }
+        }
+      ]
+    };
+    var util = new Cesium.Geojson();
+
+    // 解析成矢量对象
+    var polygonGeojson = util.read(MultiPolygon);
+    // 解析成可以显示的 primitive 对象
+    var primitives = polygonGeojson.readToPrimitives(MultiPolygon, { fillColor: '#ff0' });
+    viewer.scene.primitives.add(primitives[0]);
+
+    // 获取多边形 geomery 对象
+    var polygonGeojson2 = util.read(MultiPolygon2);
+    var PolygonInstance = polygonGeojson.getPolygonInstance(polygonGeojson2.polygonArray[0].geometry, { fillColor: '#00CED1', fillOpacity: 1 });
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: PolygonInstance,
+        appearance: new Cesium.PerInstanceColorAppearance({
+          translucent: false,
+          closed: true,
+        }),
+      })
+    );
+
+    var lineGeojson = util.read(LineString);
+    // 获取线 geomery 对象
+    var lineInstance = lineGeojson.getLineInstance(lineGeojson.lineArray[0].geometry, { strokeColor: '#6495ED', strokeOpacity: 1 });
+    lineInstance.geometry._width = 5;
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: lineInstance,
+        appearance: new Cesium.PolylineColorAppearance(),
+      })
+    );
+
+    var pointGeojson = util.read(Point);
+    // 获取点 geomery 对象
+    var pointInstance = pointGeojson.getPointInstance(pointGeojson.pointArray[0][0]);
+    var pointPrimitives = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+    pointPrimitives.add({
+      id: 'point',
+      position: Cesium.Cartesian3.fromDegrees(pointInstance.x, pointInstance.y),
+      show: true,
+      color: Cesium.Color.SKYBLUE,
+      pixelSize: 10,
+      outlineColor: Cesium.Color.YELLOW,
+      outlineWidth: 3
+    });
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.29343663013724, 35.71509772852922, 437.7322358950821),
+      orientation: {
+        heading: Cesium.Math.toRadians(18.467521399221052),
+        pitch: Cesium.Math.toRadians(-25.841296181768428),
+        roll: 0
+      }
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

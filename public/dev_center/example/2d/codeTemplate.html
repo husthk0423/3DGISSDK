@@ -1,0 +1,243 @@
+﻿﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>后端底图渲染</title>
+  <meta name="keywords" content="矢量瓦片,矢量索引">
+  <meta name="description" content="后端底图渲染">
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <link href="../../css/viewer.css" rel="stylesheet" type="text/css" />
+  <link href="../../lib/codemirror-4.5/lib/codemirror.css" type="text/css" rel="stylesheet" />
+
+  <style type="text/css">
+    .CodeMirror {
+      font-family: Consolas, monaco, 'Courier New', Courier, monospace;
+      position: absolute;
+      bottom: 0px;
+      top: 33px;
+      width: 100%;
+    }
+
+    .CodeMirror pre {
+      line-height: 1.5em;
+    }
+
+    .CodeMirror-sizer {
+      padding-left: 2px;
+    }
+
+    #drag {
+      width: 2px;
+      height: 100%;
+      background: #eee;
+      cursor: w-resize;
+      float: left;
+    }
+
+    .markdown-section {
+      margin: 0 auto !important;
+      padding: 12px 0px 40px !important;
+      position: relative !important;
+      max-width: 100% !important;
+    }
+
+    .markdown-section {
+      padding: 0px;
+      width: 100%;
+      height: 100%;
+      max-width: 3000px;
+    }
+
+    .content {
+      padding-top: 0px;
+      left: 0px;
+    }
+
+    .sidebar ul li a {
+      overflow: inherit;
+    }
+
+    .hj-wrap {
+      /* margin: 10px auto; */
+      clear: both;
+      border: 0px;
+    }
+
+    .hj-transverse-split-div {
+      float: left;
+      height: 100%;
+      padding: 0px;
+      position: relative;
+      border: 0px;
+    }
+
+    .hj-wrap .hj-transverse-split-label {
+      float: left;
+      width: 8px;
+      height: 100%;
+      display: block;
+      cursor: e-resize;
+      background-color: #63BFFF;
+      position: relative;
+    }
+
+    /*table tr td{*/
+    /*border:1px solid #fff;*/
+    /*}*/
+    .hj-vertical-split-div {
+      height: 150px;
+      border: 0px solid red;
+      width: 99.9%;
+      margin: 0 auto;
+    }
+
+    .hj-vertical-split-label {
+      width: 100%;
+      height: 10px;
+      display: block;
+      cursor: n-resize;
+      background-color: #fff;
+    }
+
+    .revealing_code {
+      position: absolute;
+      top: 0px;
+      left: 0;
+      height: 40px;
+      padding: 0 10px;
+      box-sizing: border-box;
+      cursor: pointer;
+      line-height: 40px;
+      color: #3887be;
+      user-select: none;
+    }
+
+    .code_pack_up {
+      opacity: 0;
+      z-index: 0 !important;
+    }
+
+    .section-unfold {
+      position: absolute;
+      top: 40px;
+      left: 0;
+      width: 100% !important;
+      height: calc(100% - 40px) !important;
+    }
+
+    #asideId {
+      /* width: 100% !important; */
+      position: absolute;
+      top: 40px;
+      left: 0%;
+      width: 50%;
+      height: 90%;
+      z-index: 10;
+    }
+
+    .code_area_title {
+      height: 33px;
+    }
+  </style>
+
+  <script type="text/javascript" src="../../lib/jquery/jquery-1.11.1.js"></script>
+  <script src="../../vendor/monitorSplitWindows.js"></script>
+  <script type="text/javascript" src="../js/codeTemplate.js"></script>
+  <!-- 代码高亮编辑显示，需加入对应的mode模块 -->
+  <script type="text/javascript" src="../../lib/codemirror-4.5/lib/codemirror.js"></script>
+  <script type="text/javascript" src="../../lib/codemirror-4.5/mode/xml/xml.js"></script>
+  <script type="text/javascript" src="../../lib/codemirror-4.5/mode/css/css.js"></script>
+  <script type="text/javascript" src="../../lib/codemirror-4.5/mode/javascript/javascript.js"></script>
+  <script type="text/javascript" src="../../lib/codemirror-4.5/mode/htmlmixed/htmlmixed.js"></script>
+  <!-- 复制功能 -->
+  <script type="text/javascript" src="../../lib/clipboard.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function () {
+      $('body').addClass("hj-wrap");
+      $('aside').addClass("hj-transverse-split-div");
+      $("aside").width("49%");
+      $('section').addClass("hj-transverse-split-div");
+      $("section").width("49.5%");
+      initSplit(updateCodeDiv);
+
+      $(window).resize(function () {
+        var w = $('#asideId').width();
+        $('#sectionId').width(document.body.clientWidth - w - 15);
+        updateCodeDiv();
+      });
+
+      var url = document.location.toString();
+      var param = url.split("?")[1];
+      Example.init(param);
+      $("#map-iframe").attr("src", param);
+    });
+
+    function updateCodeDiv() {
+      var url = document.location.toString();
+      var param = url.split("?")[1];
+      Example.renderData(param);
+    }
+  </script>
+</head>
+
+<body>
+  <aside id="asideId" class="code_pack_up">
+    <div class="code_area code_pack_up" id="codeAreaDiv" style="width: 100%;">
+      <div class="code_area_title">
+        <div class="fl">源代码</div>
+        <div class="fr code_title_but">
+          <a id="copy-button" href="#">复制代码</a>
+          <a id="run-button" href="#" class="run">运行</a>
+        </div>
+      </div>
+
+      <div class="code_area_con">
+        <textarea id="myresource" style="display: none;">
+
+			</textarea>
+      </div>
+
+    </div>
+  </aside>
+  <!-- <label class="hj-transverse-split-label"> </label> -->
+
+  <div class="revealing_code" style="display: block">
+    <span>查看源代码</span>
+  </div>
+
+  <section id="sectionId" class="section-unfold">
+    <div class="mapCon" id="exampleCon" style="width: 100%">
+      <!--<div class="code_close" id="codeDivCloseBtn" onclick="Example.codeDivCloseBtnClick(this)"></div>-->
+      <iframe id="map-iframe"></iframe>
+    </div>
+  </section>
+</body>
+
+<!-- 拖拽插件 -->
+<script type="text/javascript" src="./js/drag.js"></script>
+
+<script type="text/javascript">
+  let isShow = false;
+  $('.revealing_code').click(() => {
+    if (!isShow) {
+      $('#asideId').removeClass("code_pack_up");
+      $('.code_area').removeClass("code_pack_up");
+      $('.revealing_code')[0].innerText = '收起源代码';
+
+      $('#asideId').myDrag({
+        parent: 'parent',
+        randomPosition: false,
+        directionL: 'all',
+        handler: '.code_area_title'
+      });
+      isShow = true;
+    } else {
+      $('#asideId').addClass("code_pack_up");
+      $('.code_area').addClass("code_pack_up");
+      $('.revealing_code')[0].innerText = '查看源代码';
+      isShow = false;
+    }
+  });
+</script>
+
+</html>

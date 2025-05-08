@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>地图工具</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style>
+      .panel-box {
+        left: 1%;
+        transform: unset;
+        width: 276px;
+        height: auto;
+      }
+
+      .label {
+        display: flex;
+        align-items: center;
+        padding-left: 15px;
+        box-sizing: border-box;
+        margin: 10px 0;
+      }
+
+      .label span {
+        font-size: 14px !important;
+      }
+
+      .label input {
+        width: 80%;
+        padding: 5px;
+        box-sizing: border-box;
+        border: 1px solid #00b4ff;
+        border-radius: 5px 8px;
+        background-color: rgba(28, 91, 180, 0.4);
+        font-size: 14px;
+        color: #ffff;
+        outline: none;
+      }
+
+      .label-button {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .label-button button {
+        width: 50px;
+        height: 30px;
+        padding: 0;
+        font-size: 14px;
+      }
+
+      .tab-list {
+        width: auto;
+        background: rgba(0, 0, 0, 0);
+      }
+
+      .tab-list .select-content {
+        width: auto;
+        margin: 0;
+      }
+
+      .tab-list .select-content .form-floating {
+        margin: 0 !important;
+      }
+
+      .tab-list .select-content .labelL {
+        font-size: 14px;
+        color: #ffff !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="bottom-control">帧率：<span class="fps"></span> 网络延迟：<span class="netDelay"></span> 经度：<span class="lng"></span> 纬度：<span class="lat"></span> 高度：<span class="height"></span> 偏航角：<span class="heading"></span> 俯仰角：<span class="pitch"></span> 翻滚角：<span class="roll"></span></div>
+
+    <div class="panel-box">
+      <div class="panel-header">
+        <span>坐标定位</span>
+      </div>
+
+      <div class="panel-body">
+        <div class="label">
+          <span>经度：</span>
+          <input type="text" class="lonInput" placeholder="请输入经度(0-180°)" />
+        </div>
+
+        <div class="label">
+          <span>纬度：</span>
+          <input type="text" class="latInput" placeholder="请输入纬度(0-90°)" />
+        </div>
+
+        <div class="label-button">
+          <button type="button" class="btn btn-outline-primary" onclick="setPositions()">定位</button>
+          <button type="button" class="btn btn-outline-light" onclick="removeInput()">清空</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-list">
+      <div class="select-content">
+        <div class="form-floating">
+          <select class="form-select" id="floatingSelect" aria-label="Floating label select example"></select>
+          <label for="floatingSelect" class="labelL">行政区划定位</label>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var handler;
+
+    function createMap() {
+      var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        url: terrainUrl
+      });
+
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider, // 加载地形
+        selectionIndicator: false, // 是否获取选择周指示器
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: true, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        imageryProvider: false, // 不加载cesium提供的图层
+        infoBox: false // 是否显示点击要素之后显示的信息
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+      viewer.scene.primitives.destroyPrimitives = false;
+      viewer.scene.postProcessStages._fxaa.enabled = true;
+
+      var tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      var layer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: layerConfig.azcxzq_Vec.layerUrl,
+          layer: '',
+          style: '',
+          format: '',
+          tileMatrixSetID: '',
+          tileWidth: 512,
+          tileHeight: 512,
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+          maximumLevel: 22
+        })
+      );
+      viewer.imageryLayers.add(layer);
+
+      var label = new Cesium.ImageryLayer(
+        new Cesium.LabelTileServiceImageryProvider(viewer, {
+          url: layerConfig.azcxzq_Vec.labelUrl,
+          tilingScheme: new Cesium.GeographicTilingScheme({
+            numberOfLevelZeroTilesX: 2,
+            numberOfLevelZeroTilesY: 1
+          }),
+          tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+          maximumLevel: 22,
+          tileWidth: 512,
+          tileHeight: 512,
+          dataType: 'binary',
+          needDecode: false,
+          fontName: '微软雅黑',
+          glyphUrl: '../../font/{fontstack}/{range}.pbf',
+          defaultHeight: 63,
+          offsetHeight: 55
+        })
+      );
+      viewer.imageryLayers.add(label);
+
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.29142030402767, 35.094874483089455, 56558.524381144176), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(2.232560299371169),
+          pitch: Cesium.Math.toRadians(-41.075610413210114),
+          roll: Cesium.Math.toRadians(359.99752500139584)
+        }
+      });
+    }
+
+    function getControlParams() {
+      try {
+        setTimeout(() => {
+          clickMap();
+
+          const cameraChange = () => {
+            let fps, netDelay, lng, lat, height, heading, pitch, roll;
+            viewer.scene.debugShowFramesPerSecond = true;
+            if (viewer.scene._performanceDisplay) {
+              fps = viewer.scene._performanceDisplay._fpsText.data;
+              netDelay = viewer.scene._performanceDisplay._msText.data;
+            }
+            lng = Cesium.Math.toDegrees(viewer.camera.positionCartographic.longitude).toFixed(6);
+            lat = Cesium.Math.toDegrees(viewer.camera.positionCartographic.latitude).toFixed(6);
+            height = viewer.camera.positionCartographic.height.toFixed(2);
+            heading = Cesium.Math.toDegrees(Number(viewer.camera.heading)).toFixed(6);
+            pitch = Cesium.Math.toDegrees(Number(viewer.camera.pitch)).toFixed(6);
+            roll = Cesium.Math.toDegrees(Number(viewer.camera.roll)).toFixed(6);
+            var bottomData = { fps, netDelay, lng, lat, height, heading, pitch, roll };
+            for (let k in bottomData) {
+              $(`.${k}`)[0].innerText = bottomData[k];
+            }
+          };
+          viewer.scene.camera.percentageChanged = 0.05;
+          viewer.camera.changed.addEventListener(cameraChange);
+        }, 2000);
+      } catch (error) {
+        console.log('获取底部控件参数方法报错：', error);
+      }
+    }
+
+    function clickMap() {
+      !handler && (handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas));
+      handler.setInputAction(e => {
+        let cartesian = null;
+        let primitive = viewer.scene.pick(e.startPosition);
+        if (primitive) {
+          cartesian = viewer.scene.pickPosition(e.startPosition);
+        } else {
+          let ray = viewer.camera.getPickRay(e.startPosition);
+          cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+        }
+        if (!cartesian) return;
+        const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        const lng = Cesium.Math.toDegrees(cartographic.longitude).toFixed(6);
+        const lat = Cesium.Math.toDegrees(cartographic.latitude).toFixed(6);
+        var bottomData = { lng, lat };
+        for (let k in bottomData) {
+          $(`.${k}`)[0].innerText = bottomData[k];
+        }
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }
+
+    function setPositions() {
+      var lonVal = $('.lonInput')[0].value.replace(/\s*/g, '');
+      var latVal = $('.latInput')[0].value.replace(/\s*/g, '');
+      var re = /^[0-9]+.?[0-9]*/;
+      if (!lonVal || !latVal || !re.test(lonVal) || !re.test(latVal) || lonVal < 0 || lonVal > 180 || latVal < 0 || latVal > 90) return;
+      var viewPos = getCameraView();
+      var pos = {
+        lon: lonVal,
+        lat: latVal,
+        high: viewPos.high,
+        heading: viewPos.heading,
+        pitch: viewPos.pitch,
+        roll: viewPos.roll
+      };
+      flyToCameraView(pos);
+    }
+
+    function getCameraView() {
+      let camera = viewer.camera;
+      let position = camera.positionCartographic;
+      let pos = {};
+      pos.lon = Cesium.Math.toDegrees(position.longitude).toFixed(6);
+      pos.lat = Cesium.Math.toDegrees(position.latitude).toFixed(6);
+      pos.high = position.height.toFixed(2);
+      pos.heading = (Cesium.Math.toDegrees(camera.heading || 0) % 360).toFixed(1);
+      pos.pitch = (Cesium.Math.toDegrees(camera.pitch || 0) % 360).toFixed(1);
+      pos.roll = (Cesium.Math.toDegrees(camera.roll || 0) % 360).toFixed(1);
+      return pos;
+    }
+
+    function removeInput() {
+      $('.lonInput')[0].value = '';
+      $('.latInput')[0].value = '';
+    }
+
+    function getXZQ() {
+      $.ajax({
+        type: 'GET',
+        url: '../data/json/行政区划.json',
+        data: {},
+        dataType: 'JSON',
+        success: res => {
+          var features = res.features;
+          var options = [];
+          features.forEach(item => {
+            var { POS, XZQMC } = item.properties;
+            var $option = $(`<option value='${JSON.stringify(POS)}'>${XZQMC}</option>`);
+            options.push($option);
+          });
+          $('.form-select').prepend(...options);
+          $('.form-select').on('change', function () {
+            var pos = JSON.parse($('option:selected', this).val());
+            flyToCameraView(pos);
+          });
+        }
+      });
+    }
+
+    function flyToCameraView(pos) {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(pos.lon, pos.lat, pos.high), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(pos.heading),
+          pitch: Cesium.Math.toRadians(pos.pitch),
+          roll: Cesium.Math.toRadians(pos.roll)
+        }
+      });
+    }
+
+    function startup(Cesium) {
+      'use strict';
+      createMap();
+      getControlParams();
+      getXZQ();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>底图平移</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/leaflet.css" />
+  <link rel="stylesheet" href="../../css/rarefont.css" />
+</head>
+
+<body style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%;z-index: -1">
+    <span id="jwd" style="position:absolute;bottom:10px;left:5px;z-index: 1000"></span>
+  </div>
+  <script src="../../js/leaflet/leaflet.js"></script>
+  <script src="/lib/jquery/jquery-1.11.1.js"></script>
+  <script src="../../js/leaflet/CustomWebSDK.min.js"></script>
+
+  <!-- 引入平移插件js  -->
+  <script src="../../js/leaflet/Map.BorderPan.js"></script>
+  <script>
+    var map = L.map('map', {
+      crs: L.CRS.CustomEPSG4326,
+      center: {
+        lon: 120.09215287988154,
+        lat: 30.277052933991797
+      },
+      zoom: 12,
+      borderPan: true,
+      borderPanOffset: 300,
+      borderWidth: 200
+    });
+      //添加底图
+      var layer = new L.TileLayer(
+        'http://t0.tianditu.gov.cn/vec_c/wmts?tk=eec8c7ee00d8d62dd60a274aa1a1beb5&SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=c&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles', { tileSize: 256 });
+     map.addLayer(layer)
+
+    // 添加平移控件
+    map.fitBounds();
+  </script>
+
+</body>
+
+</html>

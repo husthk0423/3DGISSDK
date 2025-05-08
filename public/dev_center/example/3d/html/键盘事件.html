@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>键盘事件</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="bottom-control">
+    <span>W 前进</span>
+    <span>W + A 左转</span>
+    <span>W + D 右转</span>
+    <span>S 后退</span>
+    <span>空格切换视图</span>
+  </div>
+</body>
+
+<script>
+  var viewer;
+  var carPrimitive;
+  var viewType = '3D';
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: 'http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=eec8c7ee00d8d62dd60a274aa1a1beb5',
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    tile3d.readyPromise.then(tileset => {
+      var boundingSphere = tileset.boundingSphere;
+      var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+      var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+      var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -80);
+      var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+      tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+      viewer.scene.primitives.add(tileset);
+    });
+  }
+
+  function createEvent() {
+    // 加载模型
+    let radian = Cesium.Math.toRadians(2.0); // 小车旋转角度
+    let speed = 0.3; // 小车的速度
+    let speedVector = new Cesium.Cartesian3(); // 速度矢量
+    let position = Cesium.Cartesian3.fromDegrees(114.31508696568324, 35.71962683880015, 1);
+    var hpRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(180), Cesium.Math.toRadians(0), Cesium.Math.toRadians(0));
+    var converter = Cesium.Transforms.eastNorthUpToFixedFrame;
+    var modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(position, hpRoll, Cesium.Ellipsoid.WGS84, converter);
+    carPrimitive = viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      url: '../../data/car.glb',
+      modelMatrix: modelMatrix,
+      scale: 1,
+      show: true,
+      luminanceAtZenith: 0.8
+    }));
+    viewer.camera.lookAt(position, new Cesium.Cartesian3(20, -30, 20));
+
+    // 小车状态
+    let flag = {
+      moveUp: false,
+      moveDown: false,
+      moveLeft: false,
+      moveRight: false
+    };
+
+    document.onkeydown = (e) => {
+      setFlagStatus(e, true);
+    };
+
+    document.onkeyup = (e) => {
+      setFlagStatus(e, false);
+    };
+
+    // document.addEventListener('keydown', (e) => {
+    //   setFlagStatus(e, true);
+    // });
+
+    // document.addEventListener('keyup', (e) => {
+    //   setFlagStatus(e, false);
+    // });
+
+    // 根据键盘按键返回标志
+    function setFlagStatus(key, value) {
+      switch (key.keyCode) {
+        case 87:
+          // 前进
+          flag.moveUp = value;
+          break;
+        case 68:
+          // 右转
+          flag.moveRight = value;
+          break;
+        case 83:
+          // 后退
+          flag.moveDown = value;
+          break;
+        case 65:
+          // 左转
+          flag.moveLeft = value;
+          break;
+        case 32:
+          // 切换 2D/3D 视图
+          viewType = viewType == '3D' ? '2D' : '3D';
+          switchView(viewType);
+          break;
+      }
+    }
+
+    // 对帧添加监听事件
+    viewer.clock.onTick.addEventListener((clock) => {
+      if (flag.moveUp) {
+        if (flag.moveLeft) {
+          hpRoll.heading -= radian;
+        }
+        if (flag.moveRight) {
+          hpRoll.heading += radian;
+        }
+        moveCar(true);
+      }
+
+      if (flag.moveDown) {
+        if (flag.moveLeft) {
+          hpRoll.heading -= radian;
+        }
+        if (flag.moveRight) {
+          hpRoll.heading += radian;
+        }
+        moveCar(false);
+      }
+    });
+
+    // 移动小车
+    function moveCar(isUP) {
+      // 计算速度矩阵
+      if (isUP) {
+        speedVector = Cesium.Cartesian3.multiplyByScalar(Cesium.Cartesian3.UNIT_X, speed, speedVector);
+      } else {
+        speedVector = Cesium.Cartesian3.multiplyByScalar(Cesium.Cartesian3.UNIT_X, -speed, speedVector);
+      }
+      // 根据速度计算出下一个位置的坐标
+      position = Cesium.Matrix4.multiplyByPoint(carPrimitive.modelMatrix, speedVector, position);
+      // 小车移动
+      Cesium.Transforms.headingPitchRollToFixedFrame(position, hpRoll, Cesium.Ellipsoid.WGS84, converter, carPrimitive.modelMatrix);
+      viewer.camera.lookAtTransform(carPrimitive.modelMatrix, new Cesium.Cartesian3(-40, 0, 15));
+    }
+
+    function switchView(view) {
+      viewType = view;
+      switch (view) {
+        case '3D':
+          viewer.scene.morphTo3D(0);
+          break;
+        case '2D':
+          viewer.scene.morphTo2D(0);
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    createEvent();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

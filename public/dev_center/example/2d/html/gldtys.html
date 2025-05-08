@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>过滤底图要素</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/leaflet.css" />
+
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/leaflet/leaflet.js"></script>
+  <script src="../../js/leaflet/CustomWebSDK.js"></script>
+  <script>
+    function init() {
+      var map = L.map('map', {
+        crs: L.CRS.CustomEPSG4326,
+        center: {
+          lon: 116.402206,
+          lat:40.145416
+        },
+        zoom: 7,
+        inertiaDeceleration: 15000,
+        maxZoom: 20
+      });
+      //添加底图
+      var layer = new L.GXYZ(
+        'http://1.119.169.71:10012/mapserver/layer/全国行政区划/getMap?x={x}&y={y}&l={z}&styleId=默认',
+        {
+          tileSize: 512
+        });
+      map.addLayer(layer);
+
+      //过滤，只显示设置的要素
+      var filter = new Custom.Filter();
+      filter.otherDisplay = false;
+
+      var filterLayer = new Custom.FilterLayer();
+      filterLayer.id = '省级行政区划面';
+      filterLayer.sqlFilterStr = 'gid=1';
+      filter.addFilterLayer(filterLayer);
+
+      layer.setFilter(filter);
+    }
+  </script>
+
+</body>
+
+</html>

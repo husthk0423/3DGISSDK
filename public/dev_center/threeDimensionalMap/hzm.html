@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>绘制面</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+
+		<style>
+			body {margin: 0;padding: 0;}
+			html,body,#map {height: 100%;}
+		</style>
+
+	</head>
+	<body>
+		<div id='map'></div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				pitch: 30,
+				zoom: 16,
+				maxTileCacheSize: 100,
+				fontName: '微软雅黑',
+				glyphUrl: './fonts/{fontstack}/{range}.pbf',
+				center: [120.14597, 30.27377]
+			});
+			map.setLightIntensity(0.3);
+			var xyz = new Geoway.XYZLayer([
+				'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=sanwei_test1&tilesize=512&ratio=1'
+			], {
+				tileSize: 512
+			});
+			map.addLayer(xyz);
+			var geoSourceLayer = new Geoway.GeoSourceLayer(map);
+			let feature = {};
+			feature.wkt =
+				"POLYGON((120.14597 30.27377,120.15547 30.27377,120.15547 30.27307,120.14597 30.27307,120.14597 30.27377))";
+			feature.paintProperties = {
+				fill: true,
+				fillColor: '#ff0000',
+				fillOpacity: 0.5,
+				stroke: true,
+				strokeColor: '#0000ff',
+				strokeOpacity: 1.0,
+				strokeWidth: 5
+			};
+			geoSourceLayer.addFeature(feature);
+			map.addLayer(geoSourceLayer);
+		</script>
+	</body>
+</html>

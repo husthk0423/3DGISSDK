@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="../css/leaflet.css" />
+    <script src="../js/uuid.js"></script>
+    <script src="../js/leaflet.js"></script>
+    <script src="../js/CustomWebSDK.min.js"></script>
+    <script src="batchDraw.js"></script>
+    <script src="../js/layer/label/draw/CanvasLayer.js"></script>
+</head>
+
+<body onload="init()" style="margin : 0; ">
+    <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+    <script>
+    function init() {
+        /*var res = [ 1.40625, 0.703125, 0.3515625,
+            0.17578125, 0.087890625, 0.0439453125, 0.02197265625,
+            0.010986328125, 0.0054931640625, 0.00274658203125,
+            0.001373291015625, 0.0006866455078125, 0.00034332275390625,
+            0.000171661376953125, 0.0000858306884765625,
+            0.00004291534423828125, 0.00002145767211914062,
+            0.00001072883605957031, 0.00000536441802978515,
+            0.00000268220901489257, 0.0000013411045074462891,
+            0.00000067055225372314453 ];*/
+        /*       var res = [
+                      1,
+                      0.5,
+                      0.25,
+                      0.125,
+                      0.0625,
+                      0.03125,
+                      0.015625,
+                      0.0078125,
+                      0.00390625,
+                      0.001953125,
+                      0.0009765625,
+                      0.00048828125,
+                      0.000244140625,
+                      0.0001220703125,
+                      0.00006103515625,
+                      0.000030517578125,
+                      0.0000152587890625,
+                      0.00000762939453125,
+                      0.000003814697265625,
+                      0.0000019073486328125
+                    ];*/
+
+        map = L.map('map', { renderer: L.canvas(), crs: L.CRS.CustomEPSG4326, center: { lon: 120.15, lat: 30.268 }, zoom: 8, inertiaDeceleration: 15000 });
+        //添加底图
+        var layer = new L.GXYZ('https://sdi.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017', { tileSize: 512 });
+        map.addLayer(layer);
+        //添加注记图层,注记服务还在完善中，等服务完成后，再使用
+        var labelLayer = new L.GWVTAnno({ tileSize: 512 });
+        var dataSource = new Custom.URLDataSource();
+        dataSource.url = 'https://sdi.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017';
+        labelLayer.addDataSource(dataSource);
+        map.addLayer(labelLayer);
+        var baseArr = [];
+
+
+
+
+        var renderer = L.canvas({ padding: 0.5 });
+        map.addLayer(renderer);
+
+
+
+
+
+
+
+        function draw(arr) {
+            console.time("time:draw");
+            renderer._ctx.clearRect(renderer._bounds.min.x, renderer._bounds.min.y, renderer._bounds.max.x - renderer._bounds.min.x, renderer._bounds.max.y - renderer._bounds.min.y);
+            for (var i = 0; i < arr.length; i++) {
+                var point = arr[i];
+                renderer._ctx.fillStyle = "#FF0000";
+                renderer._ctx.beginPath();
+                renderer._ctx.arc(point.drawX, point.drawY, 3, 0, Math.PI * 2, true);
+                renderer._ctx.closePath();
+                renderer._ctx.fill();
+            }
+            console.timeEnd("time:draw");
+        }
+
+        var worker = new Worker("work.js");
+
+        worker.addEventListener("message", function(evt) {
+            draw(evt.data.drawData);
+        }, false);
+
+
+        producePoint(worker,'createData-first');
+
+
+        interval = window.setInterval(function() {
+            producePoint(worker,'createData');
+        }, 10000);
+
+
+        var oldZoom = map._zoom
+
+        map.on('zoomstart', function(e) {
+            oldZoom = e.target._zoom;
+        });
+
+        map.on('moveend', function(e) {
+            if (e.target._animateToZoom == null) {
+                producePoint(worker,'moveend');
+            } else {
+                if (oldZoom != map._zoom) {
+                    producePoint(worker,'zoom');
+                } else {
+                    producePoint(worker,'moveend');
+                }
+            }
+            oldZoom = map._zoom;
+        });
+
+    }
+    </script>
+</body>
+
+</html>

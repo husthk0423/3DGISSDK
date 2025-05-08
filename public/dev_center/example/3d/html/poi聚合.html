@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>poi聚合</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer"></div>
+</body>
+
+<script>
+  var viewer;
+  var targetBlooms;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      imageryProvider: false,
+      fullscreenButton: true,
+    });
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.postProcessStages._fxaa.enabled = true;
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.29596379238012, 35.15773828575998, 51074.79284555188), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(2.240835662457768),
+        pitch: Cesium.Math.toRadians(-42.74094343385644),
+        roll: Cesium.Math.toRadians(0.00234775952006387)
+      }
+    });
+  }
+
+  // 获取聚合数据
+  function getCluster() {
+    var geojson = {
+      "type": "FeatureCollection",
+      "features": []
+    };
+    $.get(`${baseIp}:8868/demand/v1/queryJcyjRescueList?latitude=35.886714&longitude=114.15586&radius=1000000&rescueType=team`, {}, function (data) {
+      for (let i = 0; i < data.data.data.list.length; i++) {
+        var objjson = {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": []
+          },
+          "properties": null
+        };
+        var obj = data.data.data.list[i];
+        objjson.properties = obj;
+        objjson.geometry.coordinates.push(obj.longitude);
+        objjson.geometry.coordinates.push(obj.latitude);
+        geojson.features.push(objjson);
+      }
+      initCluster(viewer, geojson);
+    });
+  }
+
+  /**
+ * @description: 点聚合功能效果
+ * @param {*} viewer
+ * @return {*}
+ */
+  function initCluster(viewer, geojsons) {
+    new Cesium.GeoJsonDataSource().load(geojsons).then(dataSource => {
+      viewer.dataSources.add(dataSource);
+
+      // 设置聚合参数
+      dataSource.clustering.enabled = true;
+      dataSource.clustering.pixelRange = 60;
+      dataSource.clustering.minimumClusterSize = 2;
+
+      // foreach用于调用数组的每个元素，并将元素传递给回调函数。
+      dataSource.entities.values.forEach(entity => {
+        // 将点拉伸一定高度，防止被地形压盖
+        entity.position._value.z += 50.0;
+        // 使用大小为64*64的icon，缩小展示poi
+        entity.billboard = {
+          image: '../../../img/e2.24a3062e.png',
+          width: 32,
+          height: 32,
+        };
+        entity.label = {
+          text: '1',
+          font: 'bold 15px Microsoft YaHei',
+          // 竖直对齐方式
+          verticalOrigin: Cesium.VerticalOrigin.CENTER,
+          // 水平对齐方式
+          horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+          // 偏移量
+          pixelOffset: new Cesium.Cartesian2(-3, -5),
+        };
+      });
+
+      // 添加监听函数
+      dataSource.clustering.clusterEvent.addEventListener(
+        function (clusteredEntities, cluster) {
+          // 关闭自带的显示聚合数量的标签
+          cluster.label.show = false;
+          cluster.billboard.show = true;
+          cluster.billboard.verticalOrigin = Cesium.VerticalOrigin.BOTTOM;
+
+
+          cluster.billboard.image = combineIconAndLabel('../../../img/e2.24a3062e.png', clusteredEntities.length, 100);
+          cluster.billboard.width = 40;
+          cluster.billboard.height = 40;
+
+          // 根据聚合数量的多少设置不同层级的图片以及大小
+          // if (clusteredEntities.length >= 500) {
+          //     cluster.billboard.image = combineIconAndLabel('../../img/e2.24a3062e.png', clusteredEntities.length, 64);
+          //     cluster.billboard.width = 40;
+          //     cluster.billboard.height = 40;
+          // } else if (clusteredEntities.length >= 200) {
+          //     cluster.billboard.image = combineIconAndLabel('../../../img/e2.24a3062e.png', clusteredEntities.length, 64);
+          //     cluster.billboard.width = 40;
+          //     cluster.billboard.height = 40;
+          // } else if (clusteredEntities.length >= 20) {
+          //     cluster.billboard.image = combineIconAndLabel('../../../img/e2.24a3062e.png', clusteredEntities.length, 64);
+          //     cluster.billboard.width = 40;
+          //     cluster.billboard.height = 40;
+          // } else {
+          //     cluster.billboard.image = combineIconAndLabel('../../../img/e2.24a3062e.png', clusteredEntities.length, 64);
+          //     cluster.billboard.width = 40;
+          //     cluster.billboard.height = 40;
+          // }
+        }
+      );
+    });
+  }
+
+
+  /**
+   * @description: 将图片和文字合成新图标使用（参考Cesium源码）
+   * @param {*} url：图片地址
+   * @param {*} label：文字
+   * @param {*} size：画布大小
+   * @return {*} 返回canvas
+   */
+  function combineIconAndLabel(url, label, size) {
+    // 创建画布对象
+    let canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    let ctx = canvas.getContext("2d");
+
+    let promise = new Cesium.Resource.fetchImage(url).then(image => {
+      // 异常判断
+      try {
+        ctx.drawImage(image, 0, 0);
+      } catch (e) {
+        console.log(e);
+      }
+
+      // 渲染字体
+      // font属性设置顺序：font-style, font-variant, font-weight, font-size, line-height, font-family
+      ctx.fillStyle = Cesium.Color.WHITE.toCssColorString();
+      ctx.font = 'bold 30px Microsoft YaHei';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, size / 3, size / 3);
+
+      return canvas;
+    });
+    return promise;
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+    getCluster();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

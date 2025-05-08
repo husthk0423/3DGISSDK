@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>修改白膜样式</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/CustomCesiumSDK/Cesium-BaseMap.js"></script>
+  <script src="../js/config.js"></script>
+
+  <style>
+    .tab-list .select-content {
+      margin-top: 0;
+    }
+
+    .control-item span:nth-child(1) {
+      width: 60px;
+    }
+
+    .form-select {
+      width: 80px;
+      height: 25px !important;
+      padding: 0 0 0 5px !important;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="control-body">
+      <div class="control-item">
+        <span>类型</span>
+        <div class="select-content">
+          <div class="form-floating">
+            <select class="form-select" id="floatingSelect" aria-label="Floating label select example">
+              <option value='vec'>矢量</option>
+              <option value='img'>图片</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-item">
+        <span>贴图</span>
+      </div>
+
+      <div class="control-item">
+        <span>颜色</span>
+        <input type="color" data-bind="value: lightColor, valueUpdate: 'input'">
+        <span data-bind="text:lightColor"></span>
+      </div>
+
+      <div class="control-item">
+        <span>拉伸倍数</span>
+        <input type="range" min="0.1" max="2" step="0.1" data-bind="value: decay, valueUpdate: 'input'">
+        <span data-bind="text:decay"></span>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+  var gzTiles;
+  var targetBlooms;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: false, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      imageryProvider: false
+    });
+
+    targetBlooms = viewer.postProcessStages.add(Cesium.PostProcessStageLibrary.createTargetBloomStage());
+
+    // 使用腾讯地图拓展
+    viewer.imageryLayers.addImageryProvider(new Cesium.Tencent84ImageryProvider({
+      style: 4
+    }));
+
+    // 添加模型
+    gzTiles = viewer.scene.primitives.add(
+      new Cesium.Cesium3DTileset({
+        url: '../data/data/gz/tileset.json',
+        maximumScreenSpaceError: 10,
+        maximumMemoryUsage: 1024
+      })
+    );
+    gzTiles.readyPromise.then(function (tileset) {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+        id: '${batchId}',
+        color: {
+          conditions: [
+            ["true", "color('cyan')"]
+          ]
+        }
+      });
+    });
+    console.log(gzTiles);
+
+
+    var customShader = new Cesium.CustomShader({
+      lightingModel: Cesium.LightingModel.UNLIT,
+      fragmentShaderText: `
+			void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+				float _baseHeight = 0.0; // 物体的基础高度，需要修改成一个合适的建筑基础高度
+				float _heightRange = 60.0; // 高亮的范围(_baseHeight ~ _baseHeight + _      heightRange) 默认是 0-60米
+				float _glowRange = 300.0; // 光环的移动范围(高度)
+			    float vtxf_height = fsInput.attributes.positionMC.z-_baseHeight;
+			    float vtxf_a11 = fract(czm_frameNumber / 120.0) * 3.14159265 * 2.0;
+			    float vtxf_a12 = vtxf_height / _heightRange + sin(vtxf_a11) * 0.1;
+			    material.diffuse*= vec3(vtxf_a12, vtxf_a12, vtxf_a12);
+			    float vtxf_a13 = fract(czm_frameNumber / 360.0);
+			    float vtxf_h = clamp(vtxf_height / _glowRange, 0.0, 1.0);
+			    vtxf_a13 = abs(vtxf_a13 - 0.5) * 2.0;
+			    float vtxf_diff = step(0.005, abs(vtxf_h - vtxf_a13));
+			    material.diffuse += material.diffuse * (1.0 - vtxf_diff);
+			}`
+    });
+    var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+    handler.setInputAction((e) => {
+      let cartesian = null;
+      let primitive = viewer.scene.pick(e.position);
+      if (primitive) {
+        console.log(primitive);
+        cartesian = viewer.scene.pickPosition(e.position);
+      } else {
+        let ray = viewer.camera.getPickRay(e.position);
+        cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      }
+      if (!cartesian) return;
+      const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+      const lng = Cesium.Math.toDegrees(cartographic.longitude);
+      const lat = Cesium.Math.toDegrees(cartographic.latitude);
+      const height = cartographic.height;
+      const parms = { lng, lat, height, cartesian };
+      // console.log(parms);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(113.30593873419292, 23.111884777963375, 732.0514071869059),
+      orientation: {
+        heading: Cesium.Math.toRadians(50.57504394722463),
+        pitch: Cesium.Math.toRadians(-19.55757444181317),
+        roll: 0
+      }
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

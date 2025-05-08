@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+  <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+  <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+  <title>地形抬升</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<div class="tab-list">
+  <div class="btn-content">
+    <button type="button" class="btn btn-outline-light btn-item" onclick="burrow()">抬升</button>
+    <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">移除</button>
+  </div>
+</div>
+
+<script>
+  var viewer;
+  var tile3d;
+  var terrainClip;
+  var terrainObj;
+  var fps = '60FPS';
+  function startup(Cesium) {
+    createMap();
+  }
+
+  // var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+  //   requestVertexNormals: true,
+  //   url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+  // });
+  let cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+          url:'http://data.mars3d.cn/terrain'
+      });
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider,
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false,  //是否显示动画控件
+      baseLayerPicker: false, //是否显示图层选择控件
+      geocoder: false, //是否显示地名查找控件
+      timeline: false, //是否显示时间线控件
+      sceneModePicker: true, //是否显示投影方式控件
+      navigationHelpButton: false, //是否显示帮助信息控件
+      infoBox: false,  //是否显示点击要素之后显示的信息
+      imageryProvider: false,
+      fullscreenButton: true
+    });
+
+    viewer.scene.globe.preloadAncestors = false;
+
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    var imageryLayers = viewer.imageryLayers;
+
+    Cesium.viewer = viewer;
+
+
+    // //天地图影像图层
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 18,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.12784540973674, 35.77207734561246, 1841.0565926001943), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(218.70272593716857),
+        pitch: Cesium.Math.toRadians(-16.057169933291835),
+        roll: 0
+      }
+    });
+  }
+  function burrow() {
+    var arr = [
+      [114.10972521499188, 35.73885919306714],
+      [114.10484437392692, 35.75641823116653],
+      [114.09035425571395, 35.744852348957345],
+      [114.0973209633455, 35.73582863455727],
+      // [114.10972521499188, 35.73885919306714]
+    ];
+    var position = [];
+    for (var i = 0; i < arr.length; i++) {
+      position.push(Cesium.Cartesian3.fromDegrees(arr[i][0], arr[i][1], 0));
+    }
+
+    terrainClip = new Cesium.TerrainClip(viewer, {
+      image: "../data/img/土2.jpg",
+      imageBottom: "../data/img/土2.jpg",
+      splitNum: 80 // 井边界插值数
+    });
+
+    terrainObj = terrainClip.addPolygon(position, { diffHeight: 200, upHeight: 850 });
+
+  }
+  function remove() {
+    if (terrainObj) {
+      terrainClip.removePolygon(terrainObj);
+      terrainObj = null;
+    }
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup(Cesium);
+  }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,70 @@
+#timeline {
+	width: 400px; 
+	position: absolute; 
+	top:70px;
+	right:100px;
+	z-index: 99;
+	height:200px;
+	background: url(images/line-time-horizontal.png)  repeat-x 0 -2px;
+	overflow-x: hidden;
+}
+
+  #dates {
+	list-style:none;
+	margin-left:50px;
+	width:300px;
+}  
+
+#dates li {
+	list-style: none; 
+	display:block;
+	float:left;
+	/* line-height:40px; */
+	width: 80px;
+	/* height: 50px; */
+	text-align: center;
+	background: url('images/tips-h.png') center top no-repeat;
+	
+}
+
+
+#dates li.selected {
+   background: url('images/tips-active-h.png') center top no-repeat;
+}
+
+
+
+#dates a {
+    
+    font-size: 12px;
+    width: 14px;
+    padding: 0 4px 5px;
+    color: #FFF;
+    margin-top: 28px;
+    background: #000;
+    display: inline-block;
+    word-wrap: break-word;
+    opacity: 0.5;
+    filter:alpha(opacity=50);
+}
+
+#dates .selected  a{
+	font-size: 16px;
+	width:18px;
+	margin-top: 31px;
+	opacity: 0.7;
+    filter:alpha(opacity=70);
+}
+
+#issues {
+	width: 800px;
+	height: 350px;
+	overflow: hidden;
+}
+
+#issues li {
+	width: 800px;
+	height: 350px;
+	list-style: none;
+	float: left;
+} 

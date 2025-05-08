@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>加载label</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+		<script src="./js/jquery-3.1.1.min.js"></script>
+		<style>
+		    body { margin: 0; padding: 0; }
+		    html, body, #map { height: 100%; }
+			.marker {
+			    width: 10px;
+			    height: 50px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id='map'>
+			<span id="jwd"  style ="position:absolute;bottom:10px;right:5px;z-index: 1000"></span>
+		</div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				pitch: 30,
+				zoom: 17,
+				maxTileCacheSize: 100,
+				center: [120.15, 30.268]
+			});
+			map.setLightIntensity(0.3);
+			//底图图层
+			var xyz = new Geoway.XYZLayer(['http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512&ratio=1'], {tileSize: 512});
+			map.addLayer(xyz);
+			//label
+			var elabell = document.createElement('div');
+			elabell.classList.add('marker');
+			elabell.innerHTML ='<h1>Hello World!</h1>';
+			
+			var marker = new Geoway.Marker(elabell,{offset:[-25,-25]})
+				.setLngLat([120.15, 30.268])
+			    .addTo(map);
+			
+		</script>
+	</body>
+</html>

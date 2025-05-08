@@ -1,0 +1,80 @@
+#timeline {
+    background: url(images/line-time-bg.png) repeat-y scroll right top;/*right 0px top 0px*/
+    height: 500px;
+    overflow: hidden;
+    position: absolute;
+    right: 40px;
+    /*top: 39px;*/
+	top: 0px;
+    width: 200px;
+    z-index: 99;
+}
+#dates {
+    height: 440px;
+    overflow: hidden;
+    width: 200px;
+}
+#dates li {
+    background: url("images/tips.png") no-repeat  right top;/*right 0 top 0*/
+    height: 30px;
+    line-height: 22px;
+    list-style: outside none none;
+    padding-right: 28px;
+    text-align: right;
+    /*width: 120px;*/
+	position: relative;
+	right: 3px;
+    z-index: 100;
+	/* margin: 100px 0; */
+}
+
+#dates a {
+    color: #fff;
+    font-size: 14px;
+	height: 22px;
+    line-height: 22px;
+    padding: 0 5px 0 10px;
+	background: #000;
+	opacity: 0.8;
+	filter: alpha(opacity=80);
+	display: inline-block;
+}
+#dates li.selected {
+    background: url("images/tips-active.png") no-repeat right 0 top 0;
+	height: 40px;
+    line-height: 26px;
+    padding-right: 31px;
+	right: 1px;
+}
+#dates li.selected a {
+	height: 26px;
+    line-height: 26px;
+	padding: 0 10px 0 15px;
+	opacity: 0.7;
+	filter: alpha(opacity=70);
+	font-size: 20px;
+	color: #fff;
+}
+#issues {
+    float: right;
+    height: 440px;
+    overflow: hidden;
+    width: 630px;
+}
+#issues li {
+    height: 440px;
+    list-style: outside none none;
+    width: 630px;
+}
+#issues li h1 {
+    color: #ffcc00;
+    font-size: 42px;
+    height: 52px;
+    line-height: 52px;
+    text-shadow: 1px 1px 2px #000;
+}
+#issues li p {
+    font-size: 14px;
+    line-height: 26px;
+    margin: 10px;
+}

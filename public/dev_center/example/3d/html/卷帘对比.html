@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>卷帘对比</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../js/config.js"></script>
+
+  <style>
+    .tab-list {
+      width: 382px;
+      user-select: none;
+    }
+    
+    .select-content{
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list tab-list-style">
+    <div class="tab-content">
+      <div class="tab-item" onclick="changeType('image')"><span>影像卷帘</span></div>
+      <div class="tab-item" onclick="changeType('model')"><span>模型卷帘</span></div>
+    </div>
+
+    <div class="checked-content">
+      <div class="checked-label">
+        <span>卷帘方向：</span>
+      </div>
+
+      <div class="checked-box">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1"
+            onchange="changeDirection('UD')">
+          <label class="form-check-label" for="flexRadioDefault1">上下</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2"
+            onchange="changeDirection('LR')">
+          <label class="form-check-label" for="flexRadioDefault2">左右</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="select-content">
+      <div class="form-floating">
+        <select class="form-select" id="floatingSelect1" aria-label="Floating label select example">
+          <option value="鹤壁_201311" selected>鹤壁_201311</option>
+        </select>
+        <label for="floatingSelect" class="labelL">影像</label>
+      </div>
+
+      <div class="form-floating">
+        <select class="form-select" id="floatingSelect2" aria-label="Floating label select example">
+          <option value="鹤壁市行政区" selected>鹤壁市行政区</option>
+          <option value="鹤壁市模型分区">鹤壁市模型分区</option>
+        </select>
+        <label for="floatingSelect" class="labelR">矢量</label>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="slider-shutter" class="slider-shutter-UD"></div>
+</body>
+
+<script src="../js/tabToggle.js"></script>
+<script src="../js/sliderShutter.js"></script>
+<script>
+  var viewer;
+  var rollerType = 'image'; // 卷帘类型
+  var directionType = 'UD'; // 卷帘方向
+  var baseImageLayer;
+  var compareImageLayer;
+  var base3Dtile;
+  var compare3Dtile;
+  var rollerLayerData = {
+    compare: [
+      {
+        title: '鹤壁_201311',
+        layerUrl: layerConfig.hb_Img_c.layerUrl
+      }
+    ],
+    base: [
+      {
+        title: '鹤壁市行政区',
+        layerUrl: layerConfig.azcxzq_Vec.layerUrl
+      },
+      {
+        title: '鹤壁市模型分区',
+        layerUrl: layerConfig.azcmxfq_Vec.layerUrl
+      }
+    ]
+  };
+
+  function createMap() {
+    let cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      requestVertexNormals: true,
+      url: terrainUrl
+    });
+
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider,
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.postProcessStages.fxaa.enabled = true;
+    var imageryLayers = viewer.imageryLayers;
+    // 去掉entity的默认双击追踪，防止双击结束的时候点击到entity上引起视角跳转
+    viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+  }
+
+  // 切换对比类型
+  function changeType(type) {
+    rollerType = type;
+    var slider = $('#slider-shutter');
+    slider[0].removeAttribute("style");
+    $('.form-floating').css({ 'display': rollerType == 'image' ? 'block' : 'none' });
+    baseImageLayer = removeLayer(baseImageLayer);
+    compareImageLayer = removeLayer(compareImageLayer);
+    compare3Dtile && (compare3Dtile = remove3Dtiles(compare3Dtile));
+
+    if (rollerType == 'image') {
+      layerRoller(directionType);
+    } else {
+      modelRoller(directionType);
+    }
+  }
+
+  // 切换方向
+  function changeDirection(direction) {
+    directionType = direction;
+    var slider = $('#slider-shutter');
+    var remvoeClassName = direction == 'UD' ? 'slider-shutter-LR' : 'slider-shutter-UD';
+    var className = direction == 'UD' ? 'slider-shutter-UD' : 'slider-shutter-LR';
+    slider[0].removeAttribute("style");
+    slider.removeClass(remvoeClassName);
+    slider.addClass(className);
+
+    if (rollerType == 'image') {
+      layerRoller(directionType);
+    } else {
+      modelRoller(directionType);
+    }
+  }
+
+  // 选择资源
+  function selectResource(val) {
+    changeDirection(directionType);
+  }
+
+  // 影像卷帘
+  function layerRoller(direction = 'UD') {
+    var baseLayerUrl = rollerLayerData.base.find(e => e.title == $('#floatingSelect2').val()).layerUrl;
+    var compareLayerUrl = rollerLayerData.compare.find(e => e.title == $('#floatingSelect1').val()).layerUrl;
+    if (!baseLayerUrl || !compareLayerUrl) return;
+
+    baseImageLayer = removeLayer(baseImageLayer);
+    compareImageLayer = removeLayer(compareImageLayer);
+    baseImageLayer = addLayer(baseLayerUrl);
+    compareImageLayer = addLayer(compareLayerUrl);
+
+    var slider = $('#slider-shutter');
+    var clientWidth = document.documentElement.clientWidth;
+    var splitPosition = 0.5;
+    var splitDirection = direction == 'UD' ? Cesium.SplitDirection.UP : Cesium.SplitDirection.LEFT;
+    viewer.scene._frameState.verticalComparison = direction == 'UD' ? true : false;
+    viewer.scene.splitPosition = splitPosition;
+    compareImageLayer.splitDirection = splitDirection;
+
+    window.sliderEvent(direction, (offsetVal) => {
+      console.log(offsetVal);
+      viewer.scene.splitPosition = offsetVal;
+    });
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.32122991024941, 35.12170766075988, 64916.121532399484),
+      orientation: {
+        heading: Cesium.Math.toRadians(1.7663583380522951),
+        pitch: Cesium.Math.toRadians(-46.657505242458775),
+        roll: Cesium.Math.toRadians(359.99998779066857)
+      }
+    });
+  }
+
+  function addLayer(url) {
+    var layer = new Cesium.ImageryLayer(
+      new Cesium.WebMapTileServiceImageryProvider({
+        url: url,
+        layer: "",
+        style: "",
+        format: "",
+        tileMatrixSetID: "",
+        tileWidth: 512,
+        tileHeight: 512,
+        tilingScheme: new Cesium.GeographicTilingScheme(),
+        tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+        maximumLevel: 22,
+      })
+    );
+    viewer.imageryLayers.add(layer);
+    return layer;
+  }
+
+  function removeLayer(layer) {
+    if (layer) {
+      viewer.imageryLayers.remove(layer);
+    }
+    return null;
+  }
+
+  // 模型卷帘
+  function modelRoller(direction = 'UD') {
+    // var base3DtileUrl = rollerLayerData.base.find(e => e.title == $('#floatingSelect2').val()).tileUrl;
+    // var compare3DtileUrl = rollerLayerData.compare.find(e => e.title == $('#floatingSelect1').val()).tileUrl;
+    // if (!base3DtileUrl && !compare3DtileUrl) return;
+
+    // base3Dtile = remove3Dtiles(base3Dtile);
+    // compare3Dtile = remove3Dtiles(compare3Dtile);
+    // base3Dtile = add3Dtiles(base3DtileUrl);
+    // compare3Dtile = add3Dtiles(compare3DtileUrl);
+
+    // var splitPosition = direction == 'UD' ? 0.5 : 1;
+    // var splitDirection = direction == 'UD' ? Cesium.SplitDirection.UP : Cesium.SplitDirection.LEFT;
+
+    // viewer.scene.splitPosition = splitPosition;
+    // viewer.scene._frameState.verticalComparison = true;
+    // compare3Dtile.splitDirection = splitDirection;
+
+    // window.sliderEvent(direction, (offsetVal) => {
+    //   viewer.scene.splitPosition = offsetVal;
+    // });
+
+    compare3Dtile && (compare3Dtile = remove3Dtiles(compare3Dtile));
+
+    var splitPosition = 0.5;
+    var splitDirection = direction == 'UD' ? Cesium.SplitDirection.UP : Cesium.SplitDirection.LEFT;
+    compare3Dtile = add3Dtiles();
+    viewer.scene.splitPosition = splitPosition;
+    viewer.scene._frameState.verticalComparison = direction == 'UD' ? true : false;
+    compare3Dtile.splitDirection = splitDirection;
+    window.sliderEvent(direction, (offsetVal) => {
+      viewer.scene.splitPosition = offsetVal;
+    });
+
+     viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31237412485905,35.71741990170554, 153.40526987345189),
+      orientation: {
+        heading: Cesium.Math.toRadians(38.07402339367952),
+        pitch: Cesium.Math.toRadians(-18.3521067991518),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+  }
+
+  function add3Dtiles() {
+    var tile3d = tile3d = new Cesium.Cesium3DTileset({
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl,
+      showFS: false,
+      showVS: false,
+    });
+    viewer.scene.primitives.add(tile3d);
+    return tile3d;
+  }
+
+  function remove3Dtiles(tileset) {
+    if (tileset) {
+      viewer.scene.primitives.remove(tileset);
+    }
+    return null;
+  }
+
+  function startup() {
+    'use strict';
+    $('#flexRadioDefault1').prop('checked', true);
+    $('#floatingSelect1').on('change', function () { selectResource($(this).val()); });
+    $('#floatingSelect2').on('change', function () { selectResource($(this).val()); });
+
+    createMap();
+    layerRoller();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

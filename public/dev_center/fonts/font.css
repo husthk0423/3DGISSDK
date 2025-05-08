@@ -1,0 +1,23 @@
+@font-face {
+  font-family: 'JingNan';
+  src: url('JingNan.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: "swap";
+}
+
+@font-face {
+  font-family: 'ChillYunmoGothicRegular';
+  src: url('ChillYunmoGothicRegular.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: "swap";
+}
+
+@font-face {
+  font-family: 'ChillRoundGothic_ExtraLight';
+  src: url('ChillRoundGothic_ExtraLight.ttf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: "swap";
+}

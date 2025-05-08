@@ -1,0 +1,70 @@
+#timeline {
+	width: 493px; 
+	position: absolute; 
+	z-index: 9999;
+    background: url(images/bg3.png) no-repeat;
+	overflow-x: hidden;
+}
+#timeline-bg{
+    width: 423px; 
+    margin:0 25px;
+    overflow:hidden;
+}
+
+#dates {    
+	list-style:none;
+	margin-left:50px;
+	width:250px;
+	overflow: hidden;
+}  
+
+#dates li {
+	list-style: none; 
+	display:block;
+	float:left;
+	width: 110px;
+	text-align: center;
+	
+	
+}
+
+#dates li.selected {
+   background: url('images/arr.png') center 5px no-repeat;
+}
+
+#play{
+	width:40px;
+	height:34px;
+	position: absolute; 
+	top:2px;
+	right:4px;
+	cursor: pointer;
+}
+#play.stopplay{
+	background: #838589 url('images/stopPlay.png') center 6px no-repeat;
+}
+#play.startplay{
+	background: #838589 url('images/startPlay.png') center 6px no-repeat;
+}
+
+#dates a {    
+    font-size: 12px;
+    padding: 3px 4px 5px;
+    color: #FFF;
+    margin-top: 17px;
+    display: inline-block;
+    background: url('images/line.png') center top no-repeat;
+}
+
+#issues {
+	width: 800px;
+	height: 350px;
+	overflow: hidden;
+}
+
+#issues li {
+	width: 800px;
+	height: 350px;
+	list-style: none;
+	float: left;
+} 

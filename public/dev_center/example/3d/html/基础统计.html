@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>基础统计</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/query.css">
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="panel-box space-query">
+    <div class="panel-header">
+      <span>基础统计</span>
+    </div>
+
+    <div class="panel-body">
+      <div class="label">
+        <span class="label-text">选择图层</span>
+        <div class="select-box">
+          <div class="form-floating">
+            <select class="form-select" id="floatingSelect1" aria-label="Floating label select example">
+              <option value="行政区划" selected>行政区划</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="label checked-box">
+        <span class="label-text">统计方式</span>
+        <div class="checked">
+          <input type="checkbox" class="checkbox">
+          <span>分类</span>
+        </div>
+      </div>
+
+      <div class="label">
+        <span class="label-text">分类字段</span>
+        <div class="select-box">
+          <div class="form-floating">
+            <div class="form-floating sort">
+              <select class="form-select sort-select" id="floatingSelect1"
+                aria-label="Floating label select example"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="label">
+        <span class="label-text">统计类型</span>
+        <div class="select-box">
+          <div class="form-floating way">
+            <select class="form-select way-select" id="floatingSelect1"
+              aria-label="Floating label select example"></select>
+          </div>
+
+          <div class="form-floating field">
+            <select class="form-select field-select" id="floatingSelect1" aria-label="Floating label select example">
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-content">
+        <button type="button" class="btn btn-outline-light btn-item1">取消</button>
+        <button type="button" class="btn btn-outline-light btn-item2">查询</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-box stats-table" style="display: none;">
+    <div class="panel-header">
+      <span>行政区划属性</span>
+    </div>
+
+    <div class="panel-body">
+      <table class="body-table" style="display: none;">
+        <colgroup>
+          <col width="120">
+          <col width="120">
+          <col>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>数据名称</th>
+            <th>数据类型</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div>孔子111111111111111111111111111111111</div>
+            </td>
+            <td>
+              <div>华夏</div>
+            </td>
+            <td>
+              <div>华夏</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-tips">
+        <span>暂无数据</span>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+  var queryLayerUrl = layerConfig.azcxzq_Vec.layerUrl;;
+  var imageLayer;
+  var sorts = ['id', 'xzqmc'];
+  var ways = [];
+  var fields = [];
+  var sort, way, field;
+
+  function createMap() {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider, // 加载地形
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      imageryProvider: false, //不加载cesium提供的图层
+      infoBox: false, // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.2854200261115, 34.77030942941649, 67512.37974491261), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(3.227559847851855),
+        pitch: Cesium.Math.toRadians(-34.573891606363006),
+        roll: Cesium.Math.toRadians(0.0022930481139383095)
+      }
+    });
+
+    addLayer(queryLayerUrl);
+  }
+
+  function createControl() {
+    addOptions(graphs, '.graph-select', '选择图形');
+    $('.buffer-input').val(0);
+    $('.checkbox')[0].checked = true;
+    document.querySelector('.buffer-input').onchange = changeBuffer;
+    var checkboxs = document.querySelectorAll('.checkbox');
+    checkboxs.forEach(item => {
+      item.onchange = changeChecked;
+    });
+    document.querySelector('.btn-item1').onclick = removeQuery;
+    document.querySelector('.btn-item2').onclick = queryLayer;
+  }
+
+  function addLayer(url) {
+    imageLayer = new Cesium.ImageryLayer(
+      new Cesium.WebMapTileServiceImageryProvider({
+        url: url,
+        layer: "",
+        style: "",
+        format: "",
+        tileMatrixSetID: "",
+        tileWidth: 512,
+        tileHeight: 512,
+        tilingScheme: new Cesium.GeographicTilingScheme(),
+        tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+        maximumLevel: 22,
+      })
+    );
+    viewer.imageryLayers.add(imageLayer);
+  }
+
+  function removeLayer() {
+    imageLayer && viewer.imageryLayers.remove(imageLayer);
+    imageLayer = null;
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    createControl();
+  }
+
+  if (typeof Cesium != 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

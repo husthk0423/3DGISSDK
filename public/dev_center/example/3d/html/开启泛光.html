@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开启泛光</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style>
+      .control-item {
+        justify-content: flex-start;
+        margin-bottom: 5px;
+      }
+
+      .control-item span {
+        display: inline-block;
+        width: 60px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>开启泛光</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: show" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>只发光</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: glowOnly" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>对比度</span>
+          <input type="range" class="form-range" id="customRange" min="-255.0" max="255.0" step="0.01" data-bind="value: contrast, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-255)value=-255;if(value>255)value=255" data-bind="value: contrast, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>亮度</span>
+          <input type="range" class="form-range" id="customRange" min="-1.0" max="1.0" step="0.01" data-bind="value: brightness, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-1)value=-1;if(value>1)value=1" data-bind="value: brightness, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>Delta</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="5" step="0.01" data-bind="value: delta, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>5)value=5" data-bind="value: delta, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>Sigma</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="10" step="0.01" data-bind="value: sigma, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>10)value=10" data-bind="value: sigma, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>步长</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="7" step="0.01" data-bind="value: stepSize, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>7)value=7" data-bind="value: stepSize, valueUpdate: 'input'" />
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: false, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false, //不加载cesium提供的图层
+      });
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+
+      viewer.trackedEntity = viewer.entities.add({
+        name: 'tenement',
+        position: Cesium.Cartesian3.fromDegrees(114.29585215160193, 35.72249770542608, 0),
+        model: {
+          uri: '../data/gltf/房屋.glb',
+          maxumunScale: 1,
+        },
+      });
+
+      // 绑定控件
+      const viewModel = {
+        show: true,
+        glowOnly: false,
+        contrast: 128,
+        brightness: -0.3,
+        delta: 1.0,
+        sigma: 3.78,
+        stepSize: 5.0,
+      };
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      function updatePostProcess() {
+        const bloom = viewer.scene.postProcessStages.bloom;
+        bloom.enabled = Boolean(viewModel.show);
+        bloom.uniforms.glowOnly = Boolean(viewModel.glowOnly);
+        bloom.uniforms.contrast = Number(viewModel.contrast);
+        bloom.uniforms.brightness = Number(viewModel.brightness);
+        bloom.uniforms.delta = Number(viewModel.delta);
+        bloom.uniforms.sigma = Number(viewModel.sigma);
+        bloom.uniforms.stepSize = Number(viewModel.stepSize);
+      }
+      updatePostProcess();
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(109.947146, 40.619721, 30000000.0),
+        orientation: {
+          heading: Cesium.Math.toRadians(0.0),
+          pitch: Cesium.Math.toRadians(-90.0),
+          roll: 0,
+        },
+      });
+    }
+
+    function startup(Cesium) {
+      'use strict';
+      createMap();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

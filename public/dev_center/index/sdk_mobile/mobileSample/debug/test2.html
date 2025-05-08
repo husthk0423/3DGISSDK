@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/map-gl.css' />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+
+<body onload="onLoad()">
+<div id='map'></div>
+<script src="../dist/mapgl-gl-dev.js"></script>
+<script src="../js/Filter.js"></script>
+<script src="../js/FilterLayer.js"></script>
+<script src="../js/GeowayUtil.js"></script>
+
+<script>
+
+    function onLoad() {
+        var sheet = {
+            'layers': [],
+            'metadata': [],
+            'sources': {},
+            'draft': false,
+            'id': 'streets-v9',
+            'version': 8,
+            "light": {
+                "anchor": "viewport",
+                "color": "white",
+                "intensity": 0.3
+            },
+            'glyphs': 'http://118.178.118.175:8088/mobileSample/debug/font/{range}.pbf'
+        };
+        var map = window.map = new mapgl.Map({
+            container: 'map',
+            zoom: 8,
+            center: [ 120.15, 30.268],
+            hash: false,
+            style: sheet
+        });
+
+	   map.on('load', function () {
+	   	
+	   		//底图数据源
+	   		var source = {
+                "type": "raster",
+                "tiles": ['http://118.178.118.175/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017'],
+        		"tileSize": 256
+            };
+
+
+            //底图图层
+            var layer = {
+                "id": "wms-test-layer",
+                "type": "raster",
+                "source": source,
+                "paint": {}
+            };
+            //加入底图图层到map中
+            map.addLayer(layer);
+	   	
+	       //注记数据源,tiles为获取注记数据的url
+//	   		var symbolSource = {
+//              "type": "vector",
+//              "styleUrl":'http://59.202.29.82/mapserver/server/style', //请求注记样式文件的接口
+//              "styleId":'styleLabel',//注记样式文件的id
+//              "tiles": ['http://59.202.29.82/mapserver/label/zjce/getDatas?x={x}&y={y}&l={z}'],
+//              "tileSize": 256
+//          };
+
+
+            //注记图层还在开发中，后续再接入
+//         var labelLayer = {
+//             "id": "vectorLayer",
+//             "type": "symbol",
+//             "source": symbolSource,
+//             "source-layer": "vectorLabel"
+//         };
+            //加入注记图层到map中
+//          map.addLayer(labelLayer);
+        });
+    }
+</script>
+</body>
+</html>

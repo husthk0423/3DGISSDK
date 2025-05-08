@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/map-gl.css' />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+
+<body onload="onLoad()">
+<div id='map'></div>
+<script src="../dist/mapgl-gl-dev.js"></script>
+<script src="../js/Filter.js"></script>
+<script src="../js/FilterLayer.js"></script>
+<script src="../js/GeowayUtil.js"></script>
+
+<script>
+
+    function onLoad() {
+        var sheet = {
+            'layers': [],
+            'metadata': [],
+            'sources': {},
+            'draft': false,
+            'id': 'streets-v9',
+            'version': 8,
+            "light": {
+                "anchor": "viewport",
+                "color": "white",
+                "intensity": 0.3
+            },
+            'glyphs': 'http://118.178.118.175:8088/mobileSample/debug/font/{range}.pbf'
+        };
+        var map = window.map = new mapgl.Map({
+            container: 'map',
+            zoom: 8,
+            center: [ 120.15, 30.268],
+            hash: false,
+            style: sheet
+        });
+
+
+        map.on('load', function() {
+        	//底图数据源
+	   		var source = {
+                "type": "raster",
+                "tiles": ['http://118.178.118.175/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017'],
+        		"tileSize": 256
+            };
+
+
+            //底图图层
+            var layer = {
+                "id": "wms-test-layer",
+                "type": "raster",
+                "source": source,
+                "paint": {}
+            };
+            //加入底图图层到map中
+            map.addLayer(layer);
+        	
+            //圆的数据
+             var circleSource ={
+                "type": "geojson",
+                "data": {
+                    "type": "FeatureCollection",
+                    "features": [{
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [120.15, 30.268]
+                        }
+                    }]
+                }
+            };
+
+            //将圆添加到map中
+            map.addLayer({
+                "id": "park-volcanoes",
+                "type": "circle",
+                "source": circleSource,
+                "paint": {
+                    "circle-radius": 4,        //圆的直径，单位像素
+                    'circle-opacity': 1,      //圆的透明度
+                    "circle-color": "#B42222"  // 圆的颜色
+                },
+                "filter": ["==", "$type", "Point"], /* filter过滤器将type等于Point的数据显示在layer上 */
+            });
+
+
+            //线的数据源
+            var lineSource =  {
+                "type": "geojson",
+                    "data": {
+                    "type": "Feature",
+                        "properties": {},
+                    "geometry": {
+                        "type": "LineString",
+                            "coordinates": [
+                            [120.15, 30.268],
+                            [120.18, 30.268],
+                            [120.25, 30.268],
+                            [120.28, 30.30]
+                        ]
+                    }
+                }
+            }
+
+            //将线加入到map中
+            map.addLayer({
+                "id": "route",
+                "type": "line",
+                "source": lineSource,
+                "layout": {
+                    "line-join": "round", //线转折处的处理方式： bevel：斜角，round：圆角，miter：默认，尖角
+                    "line-cap": "round"//线帽的处理方式:butt: 默认，没有线帽，round：圆形线帽,square: 矩形线帽
+                },
+                "paint": {
+                    "line-color": "#888", //线颜色
+                    "line-width": 8 //线宽度
+                }
+            });
+
+
+            //面数据源
+            var polygonSource = {
+                'type': 'geojson',
+                'data':{
+                    'type':'Feature',
+                        'properties':{},
+                    'geometry':{
+                        'type': 'Polygon',
+                        'coordinates': [[
+                        [120.15, 30.268],
+                        [120.18, 30.268],
+                        [120.25, 30.268],
+                        [120.28, 30.30],
+                        [120.15, 30.268]
+                      ]]
+                    }
+                }
+            };
+
+            //将面加入到地图中
+            map.addLayer({
+                'id': 'maine',
+                'type': 'fill',
+                'source': polygonSource,
+                'layout': {},
+                'paint': {
+                    'fill-color': '#088', //填充颜色
+                    'fill-opacity': 0.8 //填充透明度
+                }
+            });
+
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>玻璃幕墙</title>
+  <link rel="stylesheet" href="../../libs/Cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/dat.gui.min.js"></script>
+  <script src="../js/config.js"></script>
+  <style>
+    .c {
+      height: 27px;
+    }
+
+    .c input {
+      height: 20px;
+      margin: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+</body>
+
+<script>
+  var viewer, reflectiveProbe, model;
+  var viewModel = {
+    exercise: false,
+    cameraMaxRadius: 3000,
+    exposure: 0.8,
+    contrast: 1.2,
+    vReflectionColor: "#ffffff",
+    vReflectivityColor: "#ffffff",
+    vAlbedoColor: "#ffffff",
+    vMetallicReflectanceFactors: 0.04,
+    dirlightingIntensity: 1,
+    lightingIntensity: 1,
+    environmentIntensity: 1,
+    specularIntensity: 1,
+    vReflectionInfos: 1.0,
+    vLightingIntensity: 1
+  };
+
+  var roamPos = new Cesium.SampledPositionProperty();;
+  const positions = [
+    [114.31506800255323, 35.71933473588414],
+    [114.3149074123228, 35.71946316599199],
+    [114.31490426765184, 35.719782467880755],
+    [114.31548226436892, 35.71980614067134],
+    [114.3154941506502, 35.719464407804445],
+    [114.3153717438873, 35.71933950832055]
+  ];
+  let pathPos = [];
+  for (let i = 0; i < 100; i++) {
+    positions.map(e => { return pathPos.push(e[0], e[1], 50); });
+  }
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      fullscreenButton: false, // 是否显示全屏按钮控件
+      vrButton: false, // 是否显示vr按钮控件
+      geocoder: false, // 是否显示地名查找控件
+      homeButton: false, // 是否显示主页按钮控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      sceneModePicker: false, // 是否显示投影方式控件
+      selectionIndicator: false, // 是否获取选择周指示器
+      timeline: true, // 是否显示时间线控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      // contextOptions:{
+      //   requestWebgl2:true
+      // },
+      // msaaSamples:4,
+      imageryProvider: false, //不加载cesium提供的图层
+    });
+    viewer._cesiumWidget._creditContainer.style.display = "none"; // 去除icon
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.globe.enableLighting = true;
+    // 启用gbuffer绘制
+    viewer.scene.enableGBuffer = true;
+    viewer.scene._czmRenderGBufferPass = [Cesium.Pass.CESIUM_3D_TILE];
+    viewer.scene._czmGbufferManager.isReady = true;
+
+    var timeManager = new Cesium.TimeManager(viewer);
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    tile3d.readyPromise.then(tileset => {
+      var boundingSphere = tileset.boundingSphere;
+      var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+      var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+      var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -80);
+      var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+      tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+      viewer.scene.primitives.add(tileset);
+    });
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31328646089584, 35.71717276874395, 170.04717330713592),
+      orientation: {
+        heading: Cesium.Math.toRadians(33.34202606753563),
+        pitch: Cesium.Math.toRadians(-20.69495037424235),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+
+    var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+    handler.setInputAction(function (event) {
+      var position = event.position;
+      var cartesian = viewer.scene.pickPosition(position);
+      if (!Cesium.defined(cartesian)) {
+        return;
+      }
+
+      var ellipsoid = viewer.scene.globe.ellipsoid;
+      var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+      var lat = Cesium.Math.toDegrees(cartographic.latitude);
+      var lng = Cesium.Math.toDegrees(cartographic.longitude);
+      var height = cartographic.height;
+      console.log(lng + ',' + lat + ',' + height);
+
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    addProbe();
+  }
+
+  function addProbe() {
+    var modelPBR = new Cesium.ModelPBR();
+    // 环境贴图
+    var brdfMap = viewer.scene.context.defaultCubeMap;
+    const { cameraMaxRadius } = viewModel;
+    reflectiveProbe = new Cesium.ReflectiveProbe(viewer.scene, {
+      cameraCenter: Cesium.Cartesian3.fromDegrees(114.3152814171496, 35.71959648543914, 50),
+      mapSize: new Cesium.Cartesian2(4096, 4096),
+      cameraMaxRadius: cameraMaxRadius,
+      renderPass: [Cesium.Pass.CESIUM_3D_TILE],
+      // renderSkyBox: true,
+      // skyBoxUrl: {
+      //   positiveX: `../../img/skybox/bg1_px.png`,
+      //   positiveY: `../../img/skybox/bg1_py.png`,
+      //   positiveZ: `../../img/skybox/bg1_pz.png`,
+      //   negativeX: `../../img/skybox/bg1_mx.png`,
+      //   negativeY: `../../img/skybox/bg1_my.png`,
+      //   negativeZ: `../../img/skybox/bg1_mz.png`
+      // }
+    });
+
+    model = viewer.scene.primitives.add(
+      Cesium.Model.fromGltf({
+        show: true,
+        url: "../data/gltf/building/scene.gltf",
+        customShader: modelPBR,
+        modelMatrix: computeModelMatrix(
+          [114.31525062583196, 35.71960698660196, 1],
+          [0, 0, 0],
+          [1., 1., 1.0]),
+      })
+    );
+
+    modelPBR.uniformMap.reflectionSampler = () => {
+      return Cesium.defaultValue(reflectiveProbe.reflectiveMap, viewer.scene.context.defaultCubeMap);
+    };
+    modelPBR.uniformMap.reflectionMatrix = () => {
+      return reflectiveProbe.getReferenceFrameMatrix(model.modelMatrix);
+    };
+    modelPBR.uniformMap.environmentBrdfSampler = () => {
+      return brdfMap;
+    };
+
+
+    const envMapClass2 = new Cesium.EnvMapLoader(viewer.scene, "../data/gltf//environment (1).env");
+    let defEnvMap = envMapClass2;
+    defEnvMap.loadEvent.addEventListener(() => {
+      brdfMap = defEnvMap.brdfMap;
+    });
+    setTimeout(() => { reflectiveProbe.render(viewer.scene); }, 2000);
+
+    const probe = new dat.GUI().addFolder('反射探针');
+    probe.add({ d: 3000 }, "d", 100, 5000, 0.1).name("范围").onChange(function (value) {
+      reflectiveProbe.cameraMaxRadius = value;
+    });
+    probe.add({ exposure: 0.8 }, "exposure", 0, 2, 0.001).name("曝光度").onChange(function (value) {
+      model.customShader.uniforms.vExposureLinearContrast.value.x = value;
+    });
+    probe.add({ Contrast: 1.2 }, "Contrast", 0, 3, 0.001).name("对比度").onChange(function (value) {
+      model.customShader.uniforms.vExposureLinearContrast.value.y = value;
+    });
+    probe.addColor(viewModel, "vReflectionColor").name("反射色").onChange(function (value) {
+      model.customShader.uniforms.vReflectionColor.value = Cesium.Color.fromCssColorString(value);
+    });
+    probe.addColor(viewModel, "vReflectivityColor").name("环境光").onChange(function (value) {
+      model.customShader.uniforms.vAmbientColor.value = Cesium.Color.fromCssColorString(value);
+    });
+    probe.addColor(viewModel, "vAlbedoColor").name("表面散射").onChange(function (value) {
+      model.customShader.uniforms.vAlbedoColor.value = Cesium.Color.fromCssColorString(value);
+    });
+    probe.add(viewModel, "vMetallicReflectanceFactors", 0, 1, 0.001).name("表面粗糙").onChange(function (value) {
+      model.customShader.uniforms.vMetallicReflectanceFactors.value = new Cesium.Cartesian4(value, value, value, 1);
+    });
+    let dirlightingIntensity2 = 1, lightingIntensity2 = 1, specularIntensity2 = 1, environmentIntensity2 = 1;
+    probe.add(viewModel, "vLightingIntensity", 0, 5, 0.001).name("方向光强").onChange(function (value) {
+      model.customShader.uniforms.vLightingIntensity.value = new Cesium.Cartesian4(value, lightingIntensity2, environmentIntensity2, specularIntensity2);
+      dirlightingIntensity2 = value;
+    });
+    probe.add(viewModel, "vLightingIntensity", 0, 5, 0.001).name("表面光强").onChange(function (value) {
+      model.customShader.uniforms.vLightingIntensity.value = new Cesium.Cartesian4(dirlightingIntensity2, value, environmentIntensity2, specularIntensity2);
+      lightingIntensity2 = value;
+    });
+    probe.add(viewModel, "vLightingIntensity", 0, 5, 0.001).name("环境光强").onChange(function (value) {
+      model.customShader.uniforms.vLightingIntensity.value = new Cesium.Cartesian4(dirlightingIntensity2, lightingIntensity2, value, specularIntensity2);
+      environmentIntensity2 = value;
+    });
+    probe.add(viewModel, "vLightingIntensity", 0, 5, 0.001).name("镜面光强").onChange(function (value) {
+      model.customShader.uniforms.vLightingIntensity.value = new Cesium.Cartesian4(dirlightingIntensity2, lightingIntensity2, environmentIntensity2, value);
+      specularIntensity2 = value;
+    });
+    probe.add(viewModel, "vReflectionInfos", 0, 5, 0.001).name("反射强度").onChange(function (value) {
+      model.customShader.uniforms.vReflectionInfos.value = new Cesium.Cartesian2(value, 0.0);
+    });
+    probe.add({ show: false }, 'show').name("运动").onChange((value) => {
+      if (value) {
+        routeEntity(pathPos);
+      } else {
+        stoprouteEntity();
+      }
+    });
+  }
+
+  // 计算矩阵
+  function computeModelMatrix(position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+    // 计算旋转角度
+    let rotationX = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(rotation[0])));
+
+    let rotationY = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(rotation[1])));
+
+    let rotationZ = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(rotation[2])));
+    // 根据位置计算矩阵
+    let enuMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
+      Cesium.Cartesian3.fromDegrees(...position)
+    );
+
+    // 旋转矩阵
+    Cesium.Matrix4.multiply(enuMatrix, rotationX, enuMatrix);
+    Cesium.Matrix4.multiply(enuMatrix, rotationY, enuMatrix);
+    Cesium.Matrix4.multiply(enuMatrix, rotationZ, enuMatrix);
+    // 缩放矩阵
+    let scaleMatrix = Cesium.Matrix4.fromScale(new Cesium.Cartesian3(...scale));
+    // 计算最终矩阵
+    let modelMatrix = Cesium.Matrix4.multiply(enuMatrix, scaleMatrix, new Cesium.Matrix4());
+
+    return modelMatrix;
+  }
+
+  function routeEntity(line, speed = 0.2) {
+    viewer.clock.shouldAnimate = true;
+    var disObj = totalDistances(line);
+    var start = Cesium.JulianDate.fromDate(new Date(2018, 11, 12, 15));
+    var totalSeconds = Math.round(disObj.totalDis * 0.01) / speed;
+    var stop = Cesium.JulianDate.addSeconds(
+      start,
+      totalSeconds,
+      new Cesium.JulianDate()
+    );
+    viewer.clock.startTime = start.clone();
+    viewer.clock.stopTime = stop.clone();
+    viewer.clock.currentTime = start.clone();
+    viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
+
+    var velocityVectorProperty = new Cesium.VelocityVectorProperty(
+      roamPos,
+      false
+    );
+
+    var positions = disObj.positions;
+    var startIndex = 0;
+    var totalNumberOfSamples = Math.round(disObj.totalDis * 0.1);
+    for (var m = 0; m < positions.length - 1; m++) {
+      var startPosition = positions[m];
+      var endPosition = positions[m + 1];
+      var numberOfSamples = Math.round(disObj.disArr[m] * 0.1);
+      for (var i = 0; i <= numberOfSamples; ++i) {
+        var factor = (i + startIndex) / totalNumberOfSamples;
+        var time = Cesium.JulianDate.addSeconds(
+          start,
+          factor * totalSeconds,
+          new Cesium.JulianDate()
+        );
+
+        var locationFactor = i / numberOfSamples;
+        var location = Cesium.Cartesian3.lerp(
+          startPosition,
+          endPosition,
+          locationFactor,
+          new Cesium.Cartesian3()
+        );
+        if (location && location.x && location.y && location.z) {
+          roamPos.addSample(time, location);
+        }
+      }
+
+      startIndex = startIndex + numberOfSamples;
+    }
+
+    vehicleEntity = viewer.scene.primitives.add(
+      Cesium.Model.fromGltf({
+        show: true,
+        url: '../../data/Cesium_Air.glb',
+        opaquePass: Cesium.Pass.CESIUM_3D_TILE,
+        modelMatrix: computeModelMatrix(
+          [114.3152545856045, 35.719318798929024, 50],
+          [0, 0, 0],
+          [0.5, 0.5, 0.5]),
+      })
+    );
+    viewer.clock.onTick.addEventListener(trackModel);
+
+    // vehicleEntity = viewer.entities.add({
+    //   id: 'airplaneModel',
+    //   position: position,
+    //   orientation: new Cesium.VelocityOrientationProperty(position),
+    //   model: {
+    //     uri: '../../data/Cesium_Air.glb',
+    //     maximumScale: 0.5,
+    //     runAnimations: false,
+    //   }
+    // });
+    // vehicleEntity.position.setInterpolationOptions({
+    //   interpolationDegree: 4,
+    //   interpolationAlgorithm: Cesium.HermitePolynomialApproximation
+    // });
+  }
+
+  // 处理路线坐标
+  function totalDistances(line) {
+    var positions = Cesium.Cartesian3.fromDegreesArrayHeights(line);
+    var disArr = [];
+    var dis = 0;
+    for (var i = 0; i < positions.length - 1; i++) {
+      dis = dis + Cesium.Cartesian3.distance(positions[i], positions[i + 1]);
+      disArr.push(Cesium.Cartesian3.distance(positions[i], positions[i + 1]));
+    }
+    return { totalDis: dis, disArr: disArr, positions: positions };
+  }
+
+  function trackModel() {
+    let position = roamPos.getValue(viewer.clock.currentTime);
+    let rotation = new Cesium.VelocityOrientationProperty(roamPos).getValue(viewer.clock.currentTime);
+    // vehicleEntity.modelMatrix = computeModelMatrix2(position, [heading, pitch, roll], [0.5, 0.5, 0.5]);
+    let velocityEcf = new Cesium.VelocityVectorProperty(roamPos, true);
+    // console.log(velocityEcf);
+  }
+
+  function computeModelMatrix2(position, rotation, scale = [1, 1, 1]) {
+    // 计算旋转角度
+    let rotationX = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(rotation[0])));
+
+    let rotationY = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(rotation[1])));
+
+    let rotationZ = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(rotation[2])));
+    // 根据位置计算矩阵
+    let enuMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(position);
+    // 旋转矩阵
+    Cesium.Matrix4.multiply(enuMatrix, rotationX, enuMatrix);
+    Cesium.Matrix4.multiply(enuMatrix, rotationY, enuMatrix);
+    Cesium.Matrix4.multiply(enuMatrix, rotationZ, enuMatrix);
+    // 缩放矩阵
+    let scaleMatrix = Cesium.Matrix4.fromScale(new Cesium.Cartesian3(...scale));
+    // 计算最终矩阵
+    let modelMatrix = Cesium.Matrix4.multiply(enuMatrix, scaleMatrix, new Cesium.Matrix4());
+
+    return modelMatrix;
+  }
+
+  function stoprouteEntity() {
+    if (vehicleEntity) {
+      let modelId = viewer.entities.getById('airplaneModel');
+      viewer.entities.remove(modelId);
+      vehicleEntity = null;
+    }
+  }
+
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

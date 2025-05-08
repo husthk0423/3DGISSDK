@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>测距离</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="btn-content">
+      <button type="button" class="btn btn-outline-light btn-item ground-btn">贴地距离</button>
+      <button type="button" class="btn btn-outline-light btn-item pace-btn">空间距离</button>
+      <button type="button" class="btn btn-outline-light btn-item clear-btn">清除</button>
+    </div>
+  </div>
+</body>
+
+<script type="module">
+  import Measure from "../js/measure.js";
+
+  var viewer;
+  var _Measure = null;
+
+  function createMap() {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      requestVertexNormals: true,
+      url: terrainUrl
+    });
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider,
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      imageryProvider: false,
+      fullscreenButton: true,
+    });
+    viewer.scene.globe.depthTestAgainstTerrain = true; // 深度测试
+
+    //天地图影像图层
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 添加模型
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    viewer.scene.primitives.add(tile3d);
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31237412485905,35.71741990170554, 153.40526987345189),
+      orientation: {
+        heading: Cesium.Math.toRadians(38.07402339367952),
+        pitch: Cesium.Math.toRadians(-18.3521067991518),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+
+    _Measure = new Measure(viewer);
+  }
+
+  // 贴地距离
+  function distanceClampSurface() {
+    _Measure.distanceClampSurface();
+  }
+
+  // 空间距离
+  function distance() {
+    _Measure.distance();
+  }
+
+  // 清除
+  function clearDraw() {
+    _Measure.clearDraw();
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    document.querySelector('.ground-btn').onclick = distanceClampSurface;
+    document.querySelector('.pace-btn').onclick = distance;
+    document.querySelector('.clear-btn').onclick = clearDraw;
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

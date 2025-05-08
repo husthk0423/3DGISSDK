@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>聚光灯源</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/CustomCesiumSDK/Cesium-BaseMap.js"></script>
+    <script src="../js/config.js"></script>
+    <style>
+      .control-item span:nth-child(1) {
+        display: inline-block;
+        width: 70px;
+        margin-right: 10px;
+      }
+
+      .control-item span:last-child {
+        display: inline-block;
+        width: 40px;
+        margin-left: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>衰减</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="2" step="0.001" data-bind="value: decay, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>2)value=2" data-bind="value: decay, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>强度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="50" step="0.001" data-bind="value: intensity, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>50)value=50" data-bind="value: intensity, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>距离</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="2000" step="0.01" data-bind="value: distance, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value1;if(value>2000)value=2000" data-bind="value: distance, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>内张角</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="90" step="0.01" data-bind="value: minAngle, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>90)value=90" data-bind="value: minAngle, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>光源颜色</span>
+          <input type="color" data-bind="value: color, valueUpdate: 'input'" />
+          <span class="num-text2" data-bind="text:color"></span>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var deferredLight;
+    var viewModel = {
+      decay: 1.5,
+      intensity: 20,
+      distance: 350,
+      minAngle: 56.7,
+      color: '#ffffff',
+    };
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: false, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false, //不加载cesium提供的图层
+      });
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+      viewer.scene.globe.enableLighting = false;
+      // 启用gbuffer绘制
+      viewer.scene._czmGbufferManager = new Cesium.GbufferManager(viewer.scene);
+      viewer.scene._czmGBufferEnable = true;
+      viewer.scene._czmRenderGBufferPass = [Cesium.Pass.CESIUM_3D_TILE];
+      viewer.scene._czmGbufferManager.isReady = true;
+
+      deferredLight = new Cesium.DeferredLight(viewer);
+      // 物理光源 pbr高光效果
+      viewer.scene.primitives.add(deferredLight);
+
+      // 添加模型
+      const tile3d = new Cesium.Cesium3DTileset({
+        maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+        maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+        useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+        skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+        skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+        workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+        // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+        url: modelConfig.cyy3dtilesUrl.tilesetUrl,
+      });
+      tile3d.readyPromise.then(tileset => {
+        var boundingSphere = tileset.boundingSphere;
+        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+        var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -80);
+        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+        tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+        viewer.scene.primitives.add(tileset);
+      });
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.31272143626485, 35.72205079881978, 85.82518020166854),
+        orientation: {
+          heading: Cesium.Math.toRadians(153.14116401880239),
+          pitch: Cesium.Math.toRadians(-19.684522404009133),
+          roll: Cesium.Math.toRadians(0),
+        },
+      });
+
+      addSpotLight();
+    }
+
+    function addSpotLight() {
+      const positions = [
+        [
+          [114.31326382051232, 35.721028349469954, 2],
+          [114.314523577622, 35.71973288660632, 2],
+        ],
+      ];
+      const { decay, intensity, distance, minAngle, color } = viewModel;
+      const aColor = Cesium.Color.fromCssColorString(color);
+      positions.forEach(item => {
+        const c3s = item.map(e => {
+          return Cesium.Cartesian3.fromDegrees(...e);
+        });
+        let spot = deferredLight.addSpotLight({
+          position: c3s[0],
+          targetPosition: c3s[1],
+          decay,
+          intensity,
+          distance,
+          minAngle,
+          color: aColor,
+        });
+      });
+
+      addControl();
+    }
+
+    function addControl() {
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      function updatePostProcess() {
+        const { decay, intensity, distance, minAngle, color } = viewModel;
+        deferredLight.isUpdate = true;
+        deferredLight._spotLights.forEach((pointLight, i) => {
+          pointLight.decay = Number(decay);
+          pointLight.intensity = Number(intensity);
+          pointLight.distance = Number(distance);
+          pointLight.angle = Number(minAngle);
+          pointLight.color = Cesium.Color.fromCssColorString(String(color));
+        });
+      }
+
+      const stepSize = 0.00005;
+      let index = 0;
+      let state = false;
+      setInterval(() => {
+        deferredLight.isUpdate = true;
+        deferredLight._spotLights.forEach((pointLight, i) => {
+          let targetPos = pointLight.targetPosition;
+          let ellipsoid = viewer.scene.globe.ellipsoid;
+          let cartographic = ellipsoid.cartesianToCartographic(targetPos);
+          let lng = Cesium.Math.toDegrees(cartographic.longitude);
+          let lat = Cesium.Math.toDegrees(cartographic.latitude);
+          let height = cartographic.height;
+
+          if (index >= 20) {
+            state = true;
+          } else if (index == -40) {
+            state = false;
+          }
+
+          if (state) {
+            pointLight.targetPosition = Cesium.Cartesian3.fromDegrees(lng - stepSize, lat - stepSize, height);
+            index--;
+          } else {
+            pointLight.targetPosition = Cesium.Cartesian3.fromDegrees(lng + stepSize, lat + stepSize, height);
+            index++;
+          }
+        });
+        console.log(index);
+      }, 200);
+    }
+
+    function computeHprMatrix(position = [0, 0, 0], rotation = [0, 0, 0]) {
+      var position = Cesium.Cartesian3.fromDegrees(...position);
+      var heading = Cesium.Math.toRadians(rotation[0]);
+      var pitch = Cesium.Math.toRadians(rotation[1]);
+      var roll = Cesium.Math.toRadians(rotation[2]);
+      var headingPitchRoll = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+
+      var m = Cesium.Transforms.headingPitchRollToFixedFrame(position, headingPitchRoll, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, new Cesium.Matrix4());
+      return m;
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+    }
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

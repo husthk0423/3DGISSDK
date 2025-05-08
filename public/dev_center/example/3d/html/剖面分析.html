@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>剖面分析</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../../libs/echarts.min.js"></script>
+  <script src="../js/config.js"></script>
+
+  <style>
+    #chart {
+      position: absolute;
+      left: 50%;
+      bottom: 3%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 200px;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #008aff70;
+      box-shadow: 0 4px 15px 1px #02213bb3;
+      background-color: #173147cc;
+      transition: all .5s;
+    }
+
+    .hide {
+      /* display: none; */
+      bottom: -200px !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="btn-content">
+      <button type="button" class="btn btn-outline-light btn-item" onclick="volume()">剖面分析</button>
+      <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">移除</button>
+    </div>
+  </div>
+
+  <div id="chart" class="hide"></div>
+</body>
+
+<script>
+  var viewer;
+  var _handlers;
+  var _drawLayer;
+  var _last_clickTime;
+  var _last_clickPositionX;
+  var _last_clickPositionY;
+  var _lineEntity;
+  var sectionAnalysis;
+  var sectionLine;
+  var sectionMarker;
+  var sectionChart;
+  var sectionResult;
+  var tooltip;
+  var analysisPositions;
+
+  function createMap() {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider, // 加载地形
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      infoBox: false, // 是否显示点击要素之后显示的信息
+    });
+
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.primitives.destroyPrimitives = true;
+    var imageryLayers = viewer.imageryLayers;
+    // 去掉entity的默认双击追踪，防止双击结束的时候点击到entity上引起视角跳转
+    viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    viewer.scene.primitives.add(tile3d);
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31237412485905, 35.71741990170554, 153.40526987345189),
+      orientation: {
+        heading: Cesium.Math.toRadians(38.07402339367952),
+        pitch: Cesium.Math.toRadians(-18.3521067991518),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+  }
+
+  function createAnalyze() {
+    tooltip = document.createElement('DIV');
+    document.body.appendChild(tooltip);
+    tooltip.style = 'position: absolute;background: rgba(0,0,0,0.5); z-index: 999;line-height: 18px;pointer-events: none;';
+    tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击开始，双击结束</span>';
+    showTooltip();
+    _drawLayer = new Cesium.CustomDataSource('drawLayer');
+    viewer.dataSources.add(_drawLayer);
+  }
+
+  // 开始绘制
+  function volume() {
+    m_start(); // 量算开启状态
+    clearAnalysis();
+
+    if (viewer) {
+      var positions = [],
+        _lineEntity = new Cesium.Entity(),
+        $this = this,
+        lineObj = null;
+
+      _handlers = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      // left
+      _handlers.setInputAction(function (movement) {
+        // 连续单击或者双击，不处理后面一个点
+        if (isNearPoint(movement)) {
+          return;
+        }
+
+        var cartesian = getCatesian3FromPX(movement.position);
+        if (cartesian && cartesian.x) {
+          if (positions.length == 0) {
+            positions.push(cartesian.clone());
+          }
+          positions.push(cartesian.clone());
+          _addInfoPoint(cartesian);
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+      // move
+      _handlers.setInputAction(function (movement) {
+        setTooltipPos(movement); // 设置tooltip位置
+        var cartesian = getCatesian3FromPX(movement.endPosition);
+        if (positions.length >= 2) {
+          if (cartesian && cartesian.x) {
+            positions.pop();
+            positions.push(cartesian);
+          }
+        }
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+      // double-left
+      _handlers.setInputAction(function (movement) {
+        analysisPositions = positions;
+        m_end();
+        _addInfoPoint(positions[positions.length - 1]);
+        analysis();
+      }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+      _lineEntity.polyline = {
+        width: 3,
+        color: Cesium.Color.fromCssColorString("#7FFF00"),
+        opacity: 1,
+        material: Cesium.Color.fromCssColorString("#7FFF00"),
+        clampToGround: true
+      };
+
+      _lineEntity.polyline.positions = new Cesium.CallbackProperty(function () {
+        return positions;
+      }, false);
+
+      lineObj = $this._drawLayer.entities.add(_lineEntity);
+
+      //添加坐标点
+      function _addInfoPoint(position) {
+        var _labelEntity = new Cesium.Entity();
+        _labelEntity.position = position;
+        _labelEntity.point = {
+          size: 8,
+          color: Cesium.Color.fromCssColorString('#f00'),
+          outlineColor: Cesium.Color.fromCssColorString('#fff'),
+          red: 1,
+          green: 1,
+          blue: 1,
+          alpha: 1,
+          outlineWidth: 2,
+          pixelSize: 8
+        };
+        $this._drawLayer.entities.add(_labelEntity);
+      };
+    };
+  }
+
+  function getCatesian3FromPX(px) {
+    if (viewer && px) {
+      var picks = viewer.scene.drillPick(px);
+      var cartesian = null;
+      var isOn3dtiles = false, isOnTerrain = false;
+      for (let i in picks) {
+        let pick = picks[i];
+
+        // 模型上拾取
+        if (pick && (pick.primitive instanceof Cesium.Cesium3DTileFeature || pick.primitive instanceof Cesium.Cesium3DTileset || pick.primitive instanceof Cesium.Model)) {
+          isOn3dtiles = true;
+        }
+
+        // 3dtilset
+        if (isOn3dtiles) {
+          viewer.scene.pick(px);
+          cartesian = viewer.scene.pickPosition(px);
+          if (cartesian) {
+            let cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            if (cartographic.height < 0) cartographic.height = 0;
+            let lon = Cesium.Math.toDegrees(cartographic.longitude),
+              lat = Cesium.Math.toDegrees(cartographic.latitude),
+              height = cartographic.height;
+            cartesian = transformWGS84ToCartesian({ lng: lon, lat: lat, alt: height });
+          }
+        }
+      }
+
+      // 地形
+      let boolTerrain = viewer.terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
+      if (!isOn3dtiles && !boolTerrain) {
+        var ray = viewer.scene.camera.getPickRay(px);
+        if (!ray) return null;
+        cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+        isOnTerrain = true;
+      }
+
+      // 地球
+      if (!isOn3dtiles && !isOnTerrain && boolTerrain) {
+        cartesian = viewer.scene.camera.pickEllipsoid(px, viewer.scene.globe.ellipsoid);
+      }
+
+      if (cartesian) {
+        let position = transformCartesianToWGS84(cartesian);
+        if (position.alt < 0) {
+          cartesian = transformWGS84ToCartesian(position, 0.1);
+        }
+        return cartesian;
+      }
+      return false;
+    }
+  }
+
+  //坐标转换 84转笛卡尔
+  function transformWGS84ToCartesian(position, alt) {
+    if (viewer) {
+      return position ?
+        Cesium.Cartesian3.fromDegrees(
+          position.lng || position.lon,
+          position.lat,
+          position.alt = alt || position.alt,
+          Cesium.Ellipsoid.WGS84
+        ) :
+        Cesium.Cartesian3.ZERO;
+    }
+  }
+
+  //坐标转换 笛卡尔转84
+  function transformCartesianToWGS84(cartesian) {
+    if (viewer && cartesian) {
+      var ellipsoid = Cesium.Ellipsoid.WGS84;
+      var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+      return {
+        lng: Cesium.Math.toDegrees(cartographic.longitude),
+        lat: Cesium.Math.toDegrees(cartographic.latitude),
+        alt: cartographic.height
+      };
+    }
+  }
+
+  // 显示tooltip提示
+  function m_start() {
+    document.body.style.cursor = "crosshair";
+    remove_handlers();
+    showTooltip();
+  }
+
+  // 隐藏tooltip提示
+  function m_end() {
+    document.body.style.cursor = "default";
+    remove_handlers();
+    hideTooltip();
+  }
+
+  function setTooltipPos(movement) {
+    tooltip.style.left = movement.endPosition.x + 5 + 'px';
+    tooltip.style.top = movement.endPosition.y - 28 + 'px';
+  }
+
+  function showTooltip() {
+    tooltip.style.display = 'block';
+  }
+
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+  }
+
+  function remove_handlers() {
+    _handlers && _handlers.destroy();
+    _handlers = null;
+  }
+
+  function isNearPoint(movement) {
+    let times = new Date().getTime() - (_last_clickTime || 0);
+    if (_last_clickTime && times < 200) {
+      // console.log('屏蔽了单击时间很近的点')
+      return true;
+    }
+    _last_clickTime = new Date().getTime();
+
+    if (
+      _last_clickPositionX &&
+      Math.abs(_last_clickPositionX - movement.x) < 10 &&
+      Math.abs(_last_clickPositionY - movement.y) < 10
+    ) {
+      // console.log('屏蔽了单击像素很近的点')
+      return true;
+    }
+    _last_clickPositionX = movement.x;
+    _last_clickPositionY = movement.y;
+    return false;
+  }
+
+  // 剖面分析
+  function analysis() {
+    sectionAnalysis = new Cesium.SectionAnalysis(viewer, {
+      splitNum: 50,
+    });
+
+    sectionAnalysis.sectionForTerrain(analysisPositions, (res) => {
+      sectionResult = res;
+      addChart(res);
+    });
+  }
+
+  // 清除
+  function clearAnalysis() {
+    _drawLayer && _drawLayer.entities.removeAll();
+
+    if (sectionLine) {
+      viewer.entities.remove(sectionLine);
+      sectionLine = null;
+    }
+
+    if (sectionMarker) {
+      viewer.entities.remove(sectionMarker);
+      sectionMarker = null;
+    }
+
+    if (sectionChart) {
+      sectionChart.dispose();
+      sectionChart = null;
+      $('#chart').addClass('hide');
+    }
+
+    if (sectionResult) {
+      sectionResult = null;
+    }
+  }
+
+  function remove() {
+    clearAnalysis();
+    m_end();
+  }
+
+  function addChart(data) {
+    $('#chart').removeClass('hide');
+
+    var chartDom = document.getElementById('chart');
+    sectionChart = echarts.init(chartDom);
+    var option;
+
+    option = {
+      grid: {
+        show: false,
+        top: '10%',
+        right: '5%',
+        bottom: '10%',
+        left: '10%'
+      },
+      tooltip: {
+        show: true,
+        trigger: 'axis',
+        axisPointer: {
+          type: 'none'
+        },
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        textStyle: {
+          color: '#fff',
+        },
+        // formatter: '距离起点: {b0}米<br />海拔: {c0}米<br />'
+        formatter: (showdata => {
+          var showdata = showdata[0];
+          setMarkerPos(sectionResult.arrPoint[showdata.dataIndex]._position);
+          return `距离起点: ${showdata.axisValue}米<br />海拔: ${showdata.data}米<br />`;
+        })
+      },
+      xAxis: {
+        type: 'category',
+        data: data.arrLen
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [
+        {
+          data: data.arrHB,
+          type: 'line',
+          smooth: true
+        }
+      ]
+    };
+
+    option && sectionChart.setOption(option);
+  }
+
+  function setMarkerPos(position) {
+    if (!sectionMarker) {
+      addMarker(position);
+    } else {
+      sectionMarker.position = position;
+    }
+  }
+
+  function addMarker(position) {
+    sectionMarker = viewer.entities.add({
+      name: "图标（可编辑）",
+      position: position,
+      billboard: {
+        image: '../../img/marker-icon.png',
+        scale: 1,
+        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      },
+    });
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+    createAnalyze();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

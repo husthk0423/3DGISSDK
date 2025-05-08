@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>rastertile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/geoway-gl.css' />
+    <script src="../dist/geoway-gl-dev.js"></script>
+    <script src="../dist/leaflet-src.js"></script>
+    <script src="../dist/CustomWebSDK.js"></script>
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body,
+    #map {
+        height: 100%;
+    }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+    <script>
+    var map = new Geoway.Map({
+        container: 'map',
+        pitch: 30,
+        zoom: 17,
+        maxTileCacheSize: 100,
+        center: [120.15, 30.268]
+    });
+    var popup = null;
+
+    map.setLightIntensity(0.3);
+    var xyz = new Geoway.XYZLayer(['http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512&ratio=1'], { tileSize: 512 });
+    map.addLayer(xyz);
+
+    //label图层
+    var label = new Geoway.LabelLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512', { tileSize: 512, verticalLineColor: '#666666', verticalLineScreenHeight: 0 });
+
+
+    var fillExtrusionLayer = new Geoway.FillExtrusionLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512', { tileSize: 512, heightProperty: 'height', roofColor: '#ffffff', wallColor: '#eeeeee', fillAlpha: 0.8 });
+
+    label.addHeightLayer(fillExtrusionLayer);
+    map.addLayer(label);
+    map.addLayer(fillExtrusionLayer);
+
+    map.on('zoom', function() {
+        let z = map.transform._zoom;
+
+        if (map.transform.pitch < 10) {
+            return;
+        }
+        let p = map.transform.getMaxPitch(z);
+        map.transform.pitch = p;
+        popup.remove();
+    });
+
+    map.on('click', _onClick);
+
+    function _onClick(param) {
+        var handler = function(feature) {
+            if (feature) {
+                const curSelectedCoord = map.painter.featurePicker.curSelectedCoord;
+                const polygonType = feature[0];
+                const properties = feature[1];
+                const polygon = feature[2];
+                var content = [];
+                content.push('<table>');
+                content.push('<tr>');
+                content.push('<td>编码</td>');
+                content.push('<td>'+nvl(properties[1],'')+'</td>');
+                content.push('<td>楼层数</td>');
+                content.push('<td>'+nvl(properties[2],'')+'</td>');
+                content.push('</tr>');
+                content.push('</table>');
+                openPopup(content.join(''),param.lngLat);
+            }
+        }
+
+        map.painter.featurePicker.getSelection(map, param.point.x, param.point.y, handler.bind(map));
+    }
+
+    function nvl(str,replace){
+        return str?str:replace;
+    }
+
+    function openPopup(content, latLng) {
+        popup = new Geoway.Popup({ closeOnClick: true })
+            .setLngLat(latLng)
+            .setHTML(content)
+            .addTo(map);
+    }
+
+
+    </script>
+</body>
+
+</html>

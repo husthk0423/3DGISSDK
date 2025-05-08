@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+  <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+  <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+  <title>3dtiles叠矢量服务</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+  <style>
+    .control-item > span:first-child {
+      width: 91px !important;
+    }
+
+    .btn-content{
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<div class="text-description">
+  <span>可以将矢量瓦片图层叠加到倾斜之上，还可以实时修改矢量底图的外扩buffer，来检查矢量房屋的底面数据是否跟倾斜模型套合。用于倾斜模型的单栋房屋选中。</span>
+</div>
+
+<div class="tab-list tab-list-style">
+  <div class="control-body">
+    <div class="control-item">
+      <span>缓冲范围（米）</span>
+      <input type="range" class="form-range" id="customRange" min="0" max="10" step="0.1" data-bind="value: bufferDistance, valueUpdate: 'input'" />
+      <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>10)value=10" data-bind="value: bufferDistance, valueUpdate: 'input'" />
+    </div>
+
+    <div class="control-item">
+      <span>透明度</span>
+      <input type="range" class="form-range" id="customRange"min="0" max="1.0" step="0.1" data-bind="value: opacity, valueUpdate: 'input'" />
+      <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: opacity, valueUpdate: 'input'" />
+    </div>
+  </div>
+
+  <div class="btn-content">
+    <button type="button" class="btn btn-outline-light btn-item" onclick="overLayLayer()">叠加</button>
+    <button type="button" class="btn btn-outline-light btn-item" onclick="removeLayer()">清除</button>
+  </div>
+</div>
+
+<script>
+  var viewer = new Cesium.Viewer('cesiumContainer', {
+    selectionIndicator: false, // 是否获取选择周指示器
+    useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+    animation: false, // 是否显示动画控件
+    baseLayerPicker: false, // 是否显示图层选择控件
+    imageryProvider: false, //不加载cesium提供的图层
+    geocoder: false, // 是否显示地名查找控件
+    timeline: false, // 是否显示时间线控件
+    sceneModePicker: true, // 是否显示投影方式控件
+    navigationHelpButton: false, // 是否显示帮助信息控件
+    infoBox: false, // 是否显示点击要素之后显示的信息
+  });
+
+  viewer.scene.primitives.destroyPrimitives = false;
+  viewer.scene.globe.depthTestAgainstTerrain = false;
+  var imageryLayers = viewer.imageryLayers;
+
+  var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+    url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+      "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+      "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+    layer: "tdtImg_c",
+    style: "default",
+    format: "tiles",
+    tileMatrixSetID: "c",
+    subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+    tilingScheme: new Cesium.GeographicTilingScheme(),
+    tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+      "17", "18", "19"
+    ],
+    maximumLevel: 17,
+  }));
+  viewer.imageryLayers.add(tiandituImageLayer);
+
+  var tile3d = new Cesium.Cesium3DTileset({
+    url: modelConfig.stratifiedHouseholdDivisionTilesUrl.tilesetUrl,
+    showFS: false,
+    showVS: false,
+  });
+  viewer.scene.primitives.add(tile3d);
+  viewer.camera.lookAt(Cesium.Cartesian3.fromDegrees(120.85405378197508, 29.513641731330118, 35.476447210869736), new Cesium.Cartesian3(50, -100, 100));
+
+  const viewModel = {
+    show: true,
+    bufferDistance: 8,
+    opacity: 0.8
+  };
+  Cesium.knockout.track(viewModel);
+  const toolbar = document.querySelector('.tab-list');
+  Cesium.knockout.applyBindings(viewModel, toolbar);
+
+  let houseLayer = null;
+  let envelopeModelImageryProvider = null;
+  function overLayLayer() {
+    removeLayer();
+    envelopeModelImageryProvider = new Cesium.EnvelopeVectorImageryProvider(viewer, {
+      url: layerConfig.fcfh_Vec.layerDataUrl,
+      tilingScheme: new Cesium.GeographicTilingScheme({ numberOfLevelZeroTilesX: 2, numberOfLevelZeroTilesY: 1 }),
+      tileMatrixLabels: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"],
+      maximumLevel: 26,
+      tileWidth: 512,
+      tileHeight: 512,
+      dataType: 'binary',
+      needDecode: false, // 是否需要数据解码
+      fillColor: '#FF6801', // 房屋颜色
+      // translucentMaterial:true,
+      heightValue: 10000,
+      translucent: true,
+      filterLayerId: ['logibuilding4326'], // 房屋图层
+      showLevel: 10,
+      opacity: Number(viewModel.opacity), // 房屋透明度
+      bufferDistance: Number(viewModel.bufferDistance)
+    });
+    houseLayer = new Cesium.ImageryLayer(envelopeModelImageryProvider);
+    viewer.imageryLayers.add(houseLayer);
+  }
+  overLayLayer();
+
+  function removeLayer() {
+    houseLayer && viewer.imageryLayers.remove(houseLayer);
+    houseLayer = null;
+
+    envelopeModelImageryProvider && envelopeModelImageryProvider.destroy();
+    envelopeModelImageryProvider = null;
+  };
+</script>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>rastertile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/geoway-gl.css' />
+    <script src="../dist/geoway-gl-dev.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+
+
+</head>
+<body>
+<div id='map'></div>
+<script>
+    var map  = new Geoway.Map({
+        container: 'map',
+        pitch:30,
+        zoom: 17,
+        maxTileCacheSize:100,
+        center: [ 120.15, 30.268]
+    });
+
+    map.setLightIntensity(0.3);
+    var xyz = new Geoway.XYZLayer(['http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512&ratio=1'],
+        {tileSize:512});
+    map.addLayer(xyz);
+
+    //label图层
+    var label = new Geoway.LabelLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512',{tileSize:512,verticalLineColor:'#666666',verticalLineScreenHeight:0});
+    map.addLayer(label);
+
+
+    var popup = new Geoway.Popup({closeOnClick: false})
+        .setLngLat([120.15, 30.268])
+        .setHTML('<h1>Hello World!</h1>')
+        .addTo(map);
+</script>
+</body>
+</html>

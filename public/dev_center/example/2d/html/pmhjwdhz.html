@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>平面和经纬度互转</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/leaflet.css" />
+  <link rel="stylesheet" href="../../css/rarefont.css" />
+  <!-- 引入bootstrap样式 -->
+  <link rel="stylesheet" href="../../css/bootstrap.css">
+  </link>
+  <style type="text/css">
+    #operation {
+      position: fixed;
+      width: 100%;
+      z-index: 1;
+      width: 300px;
+      right: 0px;
+      opacity: 0.8;
+    }
+
+    .panel-default {
+      background-color: #fff;
+      border-color: #ddd;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%;z-index: -1">
+    <span id="jwd" style="position:absolute;bottom:10px;left:5px;z-index: 1000"></span>
+  </div>
+  <div id="operation">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <form class="form-horizontal" role="form">
+          <div class="form-group">
+            <label for="disabledSelect" class="control-label">选择投影</label>
+            <div>
+              <select id="view-projection" class="form-control">
+                <option value="EPSG:4326">WGS 84 (EPSG:4326)</option>
+                <option value="EPSG:3857">球形墨卡托（EPSG：3857）</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="disabledSelect" class="control-label">转换前坐标(点击可获取当前坐标)</label>
+            <div>
+              <label class="control-label"></label>
+              <input class="form-control" id="input1" type="text">
+              <label class="control-label"></label>
+              <input class="form-control" id="input2" type="text">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" style="width: 100%;" onclick="transformFn()">转换</button>
+          <div class="form-group">
+            <label for="disabledSelect" class="control-label">转换后坐标</label>
+            <div>
+              <label class="control-label"></label>
+              <input class="form-control" id="input3" type="text">
+              <label class="control-label"></label>
+              <input class="form-control" id="input4" type="text">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="../../js/leaflet/leaflet.js"></script>
+  <script src="/lib/jquery/jquery-1.11.1.js"></script>
+  <script src="../../js/leaflet/CustomWebSDK.min.js"></script>
+
+  <!-- 引入坐标转换插件js  -->
+  <script src="../../js/leaflet/L.LatLng.UTM.js"></script>
+  <script>
+    var map = L.map('map', {
+      center: [35.91771256180803, 107.0331604168802],
+      zoom: 4
+    });
+    //添加底图
+    var layer = L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 0,
+      maxZoom: 19
+    });
+    map.addLayer(layer);
+
+    var marker = new L.Marker([0, 0], {
+      draggable: true
+    }).addTo(map);
+
+    var viewProjSelect = document.getElementById('view-projection');
+    var ll = map.getCenter();
+    var xy = ll.utm();
+    map.on("click", function (e) {
+      // 获取点击坐标
+      ll = e.latlng
+      xy = ll.utm()
+      var lat = ll.lat
+      var lng = ll.lng
+      var x = xy.x
+      var y = xy.y
+      document.getElementById("input1").value = viewProjSelect.value == 'EPSG:4326' ? lat : x
+      document.getElementById("input2").value = viewProjSelect.value == 'EPSG:4326' ? lng : y
+      document.getElementById("input3").value = ""
+      document.getElementById("input4").value = ""
+      marker.setLatLng([lat, lng]);
+    });
+
+
+    //转换坐标
+    function transformFn() {
+      // 经纬度转平面
+      if (viewProjSelect.value == 'EPSG:4326') {
+        var lat = document.getElementById("input1").value
+        var lng = document.getElementById("input2").value
+        var latlng = L.latLng(lat, lng);
+        var utm = latlng.utm();
+        document.getElementById("input3").value = utm.x;
+        document.getElementById("input4").value = utm.y;
+      } else { // 平面转经纬度
+        var x = document.getElementById("input1").value
+        var y = document.getElementById("input2").value
+        var utm = L.utm(x, y, xy.zone, xy.band, xy.southHemi);
+        var latlng = utm.latLng();
+        document.getElementById("input3").value = latlng.lat;
+        document.getElementById("input4").value = latlng.lng;
+      }
+
+    }
+  </script>
+
+</body>
+
+</html>

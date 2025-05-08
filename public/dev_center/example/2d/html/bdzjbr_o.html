@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>本地注记避让</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/theme/default/style.css" type="text/css">
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/openlayers/OpenLayers.debug.js"></script>
+  <script src="../../js/openlayers/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = new OpenLayers.Map({
+        div: "map",
+        projection: "EPSG:4326",
+        numZoomLevels: 19
+      });
+
+      //512格网的瓦片
+      var size = new OpenLayers.Size(512, 512);
+      var layer = new OpenLayers.Layer.GXYZ("layer",
+        'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017', {
+          isBaseLayer: true,
+          tileSize: size
+        });
+      map.addLayer(layer);
+      map.setCenter(new OpenLayers.LonLat(120.16, 30.28), 16);
+
+      //base64编码的小图标，也可以用图标路径
+      var png1 =
+        'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE0IDE0Ij48ZyBmaWxsPSIjZmZmIj48cGF0aCBkPSJNMS42MzYgMTIuMzM4Yy0uNTkyIDAtMS4wNzMtLjQ3OS0xLjA3My0xLjA3MnYtMS4wMjdjMC0uNTkyLjQ3OS0xLjA3IDEuMDY5LTEuMDczdi00LjI3NGMwLS41OTIuNDgtMS4wNzIgMS4wNzMtMS4wNzJoOC42MzZjLjU5MyAwIDEuMDcyLjQ4IDEuMDcyIDEuMDcydjQuMjc2Yy41NjMuMDMzIDEuMDA4LjQ5OSAxLjAwOCAxLjA3djEuMDI3YzAgLjU5My0uNDc5IDEuMDcyLTEuMDcyIDEuMDcyaC0xMC43MTN6TTEuNjM2IDUuOTY1Yy0uNTAxIDAtLjkzNS0uMzQ2LTEuMDQ2LS44MzQtLjExMS0uNDg4LjEzLS45ODguNTgxLTEuMjA1bDUuMjU3LTIuNTI3Yy4xNjQtLjEuMzU1LS4xNTcuNTU4LS4xNTcuMTggMCAuMzUyLjA0NC41MDQuMTI1bDUuMzI0IDIuNTZjLjQ1LjIxNy42OTIuNzE3LjU4IDEuMjA1LS4xMTEuNDg4LS41NDUuODM0LTEuMDQ1LjgzNGgtMTAuNzEzeiIvPjwvZz48ZyBmaWxsPSIjNjY2Ij48cGF0aCBkPSJNMTEuMzQxIDEwLjIzOHYtNS4zNDZoLTguNjM2djUuMzQ2aC0xLjA2OXYxLjAyN2gxMC43MTN2LTEuMDI3aC0xLjAwOHptLTYuNDkyLTEuMDc4aC0xLjA1NXYtMy4yNGgxLjA1NXYzLjI0em0zLjIwOCAwaC0yLjExM3YtMy4yNGgyLjExMnYzLjI0em0yLjE3MiAwaC0xLjA1NnYtMy4yNGgxLjA1NnYzLjI0ek0xMi4zNDkgNC44OTJoLTEwLjcxM2w1LjM2Mi0yLjU3OGgtLjAxMnoiLz48L2c+PC9zdmc+';
+      var png2 =
+        'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE0IDE0Ij48ZyBmaWxsPSIjNjY2Ij48cGF0aCBkPSJNMi4wMTcgNC45ODdsNC40OTQtMy45NzQgNC40OTQgMy45NzR6TTExLjAwOSAxMi4wMTl2LTIuMDE0aDEuMDE3bC0uMDIgMS4wMDdoLjk5N3YtMS45ODVoLTIuMDE0di00LjAyNmgtOC45OTF2OC4wMTRoMTEuMDA1di0uOTk2aC0xLjk5NHptLTQuOTg1LS42NTdoLTEuMDE2di42OTRoLTIuMDEzdi0yLjAzMmgzLjAzdjEuMzM4em0wLTMuMzdoLTEuMDE2djEuMDM2aC0yLjAxM3YtMy4wM2gzLjAzdjEuOTk0em00LjAwNiAzLjM3aC0xLjAxNnYuNjk0aC0yLjAxNHYtMi4wMzJoMy4wM3YxLjMzOHptMC0zLjM3aC0xLjAxNnYxLjAzNmgtMi4wMTR2LTMuMDNoMy4wM3YxLjk5NHoiLz48L2c+PC9zdmc+';
+      var png3 =
+        'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE0IDE0Ij48Y2lyY2xlIGZpbGw9IiNmZmYiIGN4PSI3IiBjeT0iNy4wMDEiIHI9IjQuNzUiLz48cGF0aCBmaWxsPSIjNjY2IiBkPSJNNyAzLjI1YzIuMDY3IDAgMy43NSAxLjY4MyAzLjc1IDMuNzUxIDAgMi4wNjctMS42ODMgMy43NS0zLjc1IDMuNzVzLTMuNzUtMS42ODMtMy43NS0zLjc1YzAtMi4wNjggMS42ODMtMy43NTEgMy43NS0zLjc1MW0wLTFjLTIuNjIzIDAtNC43NSAyLjEyOC00Ljc1IDQuNzUxczIuMTI3IDQuNzUgNC43NSA0Ljc1IDQuNzUtMi4xMjcgNC43NS00Ljc1LTIuMTI3LTQuNzUxLTQuNzUtNC43NTF6TTcgNS4xNDZjMS4wMjIgMCAxLjg1NC44MzEgMS44NTQgMS44NTRzLS44MzIgMS44NTQtMS44NTQgMS44NTQtMS44NTQtLjgzMi0xLjg1NC0xLjg1NC44MzItMS44NTQgMS44NTQtMS44NTRtMC0uNzI5Yy0xLjQyNyAwLTIuNTg0IDEuMTU2LTIuNTg0IDIuNTgzczEuMTU3IDIuNTg0IDIuNTg0IDIuNTg0YzEuNDI2IDAgMi41ODMtMS4xNTcgMi41ODMtMi41ODRzLTEuMTU3LTIuNTgzLTIuNTgzLTIuNTgzeiIvPjwvc3ZnPg==';
+
+
+      var labelLayer = new OpenLayers.Layer.GWVTAnno("GWVTAnno", {
+        tileSize: size,
+        opacity: 1
+      });
+      //本地数据源
+      var dataSource = new Custom.LocalDataSource();
+      var feature1 = new Custom.Feature();
+      feature1.addAttribute('name', '巡视点1 杭州画廊');
+      //注记的唯一id， 用于当权重有相同时，通过唯一id排序
+      feature1.addAttribute('attributeId', 1);
+      //点的地理坐标
+      feature1.sourceData = [120.16, 30.278];
+      //点避让支持的4个方向，分别相对图标的位置为：右边，左边，下边，上边
+      feature1.directions = {
+        0: 1,
+        1: 1,
+        2: 1,
+        3: 1
+      };
+      feature1.style = {
+        show: true,
+        //要显示的要素的字段名
+        labelfield: 'name',
+        //避让的码表权值字段
+        avoidField: 'avoidWeight',
+        //避让权值
+        avoidWeight: 1000,
+        //汉字的宽度
+        chinaLabelWidth: 16,
+        //其它字符的宽度
+        otherLabelWidth: 16,
+        //线注记字间距
+        gap: 3,
+        //线状注记中任意两个字之间，旋转角度差多少度时不显示
+        angle: 30,
+        //是否是重要的，如果为true，即使被压盖也显示
+        isImportant: false,
+
+        /*********************点注记样式配置**********************/
+        //注记是否有边线
+        pointHashOutline: true,
+        //是否有底部面填充
+        pointHashBackground: false,
+        //点图片往下偏移的长度
+        graphicYOffset: -7,
+        //点图片往右偏移的长度
+        graphicXOffset: -7,
+        //点图片的宽度（图片制作时，需让图片的宽度和高度相等）
+        graphicHeight: 14,
+        //点图片与点注记的距离
+        graphicDistance: 0,
+        //文字填充颜色
+        pointFillStyle: '#ff0000',
+        //字体大小，字体类型
+        pointFillFont: '14px 微软雅黑',
+        //文字填充的透明度
+        pointFillAlpha: 1,
+        //点注记的填充线宽度
+        pointLineWidth: 2,
+        //点注记的填充线颜色
+        pointStrokeStyle: '#ffffff',
+        //边线字体大小，字体类型
+        pointStrokeFont: '12px Arial',
+        //文字边线的透明度
+        pointStrokeAlpha: 1,
+        //点注记文字宽度和高度（程序会据此高度来计算避让box的高度）
+        pointHeight: 12,
+        //背景矩形填充色
+        pointBackgroundColor: '#ff0000',
+        //背景矩形透明度
+        pointBackgroundAlpha: 1,
+        //背景边框的宽度
+        pointBackgroundLineWidth: 1,
+        //背景边框的颜色
+        pointBackgroundLineColor: '#ff0000',
+        //圆角
+        pointBackgroundRadius: 3,
+        //背景底图边缘与里面文字的间距
+        pointBackgroundGap: 0,
+        texture: '100202.png'
+      };
+
+      feature1.addAttribute('avoidWeight', feature1.style.avoidWeight);
+      dataSource.addFeature(feature1);
+      dataSource.addTextureUrl('170102.png', png1);
+      dataSource.addTextureUrl('150101.png', png2);
+      dataSource.addTextureUrl('100202.png', png3);
+
+
+
+      var feature2 = new Custom.Feature();
+      feature2.addAttribute('name', '巡视点2 威百仕影院');
+      feature2.addAttribute('attributeId', 2);
+      feature2.sourceData = [120.157, 30.280];
+      feature2.directions = {
+        0: 1,
+        1: 1,
+        2: 1,
+        3: 1
+      };
+      feature2.style = {
+        show: true,
+        //要显示的要素的字段名
+        labelfield: 'name',
+        //避让的码表权值字段
+        avoidField: 'avoidWeight',
+        //避让权值
+        avoidWeight: 1001,
+        //汉字的宽度
+        chinaLabelWidth: 16,
+        //其它字符的宽度
+        otherLabelWidth: 16,
+        //线注记字间距
+        gap: 3,
+        //线状注记中任意两个字之间，旋转角度差多少度时不显示
+        angle: 30,
+        //是否是重要的，如果为true，即使被压盖也显示
+        isImportant: false,
+
+        /*********************点注记样式配置**********************/
+        //注记是否有边线
+        pointHashOutline: true,
+        //是否有底部面填充
+        pointHashBackground: false,
+        //点图片往下偏移的长度
+        graphicYOffset: -7,
+        //点图片往右偏移的长度
+        graphicXOffset: -7,
+        //点图片的宽度（图片制作时，需让图片的宽度和高度相等）
+        graphicHeight: 14,
+        //点图片与点注记的距离
+        graphicDistance: 0,
+        //文字填充颜色
+        pointFillStyle: '#ff00ff',
+        //字体大小，字体类型
+        pointFillFont: '14px 微软雅黑',
+        //文字填充的透明度
+        pointFillAlpha: 1,
+        //点注记的填充线宽度
+        pointLineWidth: 2,
+        //点注记的填充线颜色
+        pointStrokeStyle: '#ffffff',
+        //边线字体大小，字体类型
+        pointStrokeFont: '14px 微软雅黑',
+        //文字边线的透明度
+        pointStrokeAlpha: 1,
+        //点注记文字宽度和高度（程序会据此高度来计算避让box的高度）
+        pointHeight: 12,
+        //背景矩形填充色
+        pointBackgroundColor: '#ff0000',
+        //背景矩形透明度
+        pointBackgroundAlpha: 1,
+        //背景边框的宽度
+        pointBackgroundLineWidth: 1,
+        //背景边框的颜色
+        pointBackgroundLineColor: '#ff0000',
+        //圆角
+        pointBackgroundRadius: 3,
+        //背景底图边缘与里面文字的间距
+        pointBackgroundGap: 0,
+        texture: '150101.png'
+      };
+
+      feature2.addAttribute('avoidWeight', feature2.style.avoidWeight);
+      dataSource.addFeature(feature2);
+      labelLayer.addDataSource(dataSource);
+      map.addLayer(labelLayer);
+    }
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耀斑</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+
+  <style>
+    .control-item {
+      justify-content: flex-start;
+      margin-bottom: 5px;
+    }
+
+    .control-item span {
+      display: inline-block;
+      width: 60px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="control-body">
+      <div class="control-item">
+        <span>开启耀斑</span>
+        <input type="checkbox" data-bind="checked: enabled">
+      </div>
+
+      <div class="control-item">
+        <span>强度</span>
+        <input type="range" min="1" max="10" step="0.01" data-bind="value: intensity, valueUpdate: 'input'">
+      </div>
+
+      <div class="control-item">
+        <span>失真</span>
+        <input type="range" min="1" max="100" step="0.01" data-bind="value: distortion, valueUpdate: 'input'">
+      </div>
+
+      <div class="control-item">
+        <span>离散值</span>
+        <input type="range" min="1" max="10" step="0.01" data-bind="value: ghostDispersal, valueUpdate: 'input'">
+      </div>
+
+      <div class="control-item">
+        <span>光环宽度</span>
+        <input type="range" min="1" max="100" step="0.01" data-bind="value: haloWidth, valueUpdate: 'input'">
+      </div>
+
+      <div class="control-item">
+        <span>灰尘量</span>
+        <input type="range" min="1" max="10" step="0.01" data-bind="value: dirtAmount, valueUpdate: 'input'">
+      </div>
+
+      <div class="control-item">
+        <span>地心半径</span>
+        <input type="range" min="1" max="1000000" step="0.01" data-bind="value: earthRadius, valueUpdate: 'input'">
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer, tenementEntities;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      fullscreenButton: false, // 是否显示全屏按钮控件
+      vrButton: false, // 是否显示vr按钮控件
+      geocoder: false, // 是否显示地名查找控件
+      homeButton: false, // 是否显示主页按钮控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      sceneModePicker: false, // 是否显示投影方式控件
+      selectionIndicator: false, // 是否获取选择周指示器
+      timeline: false, // 是否显示时间线控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      // contextOptions:{
+      //   requestWebgl2:true
+      // },
+      // msaaSamples:4,
+      imageryProvider: false, //不加载cesium提供的图层
+    });
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#99ccff");
+
+    var lensFlare = viewer.scene.postProcessStages.add(Cesium.PostProcessStageLibrary.createLensFlareStage());
+    // 绑定控件
+    const viewModel = {
+      enabled: true,
+      intensity: 5,
+      distortion: 5,
+      ghostDispersal: 5,
+      haloWidth: 5, // 设置该值意义不大
+      dirtAmount: 5,
+      earthRadius: 5
+    };
+    Cesium.knockout.track(viewModel);
+    const toolbar = document.querySelector('.tab-list');
+    Cesium.knockout.applyBindings(viewModel, toolbar);
+    for (const name in viewModel) {
+      if (viewModel.hasOwnProperty(name)) {
+        Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+      }
+    }
+
+    function updatePostProcess() {
+      lensFlare.enabled = Boolean(viewModel.enabled);
+      lensFlare.uniforms.intensity = Number(viewModel.intensity);
+      lensFlare.uniforms.distortion = Number(viewModel.distortion);
+      lensFlare.uniforms.ghostDispersal = Number(viewModel.ghostDispersal);
+      lensFlare.uniforms.haloWidth = Number(viewModel.haloWidth);
+      lensFlare.uniforms.dirtAmount = Number(viewModel.dirtAmount);
+      lensFlare.uniforms.earthRadius = Number(viewModel.earthRadius);
+    }
+    updatePostProcess();
+
+    var camera = viewer.scene.camera;
+    camera.position = new Cesium.Cartesian3(
+      40010447.97500168,
+      56238683.46406788,
+      20776576.752223067
+    );
+    camera.direction = new Cesium.Cartesian3(
+      -0.5549701431494752,
+      -0.7801872010801355,
+      -0.2886452346452218
+    );
+    camera.up = new Cesium.Cartesian3(
+      -0.3016252360948521,
+      -0.13464820558887716,
+      0.9438707950150912
+    );
+    camera.right = Cesium.Cartesian3.cross(
+      camera.direction,
+      camera.up,
+      new Cesium.Cartesian3()
+    );
+
+    viewer.clock.currentTime = new Cesium.JulianDate(
+      2458047,
+      27399.860215000022
+    );
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

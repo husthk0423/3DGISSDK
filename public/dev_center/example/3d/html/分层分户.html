@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分层分户</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../js/config.js"></script>
+  <style>
+    .labelL {
+      opacity: 1 !important;
+    }
+
+    .pick-box {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    .pick-box span {
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .pick-box span:nth-child(1) {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="select-content">
+      <div class="form-floating">
+        <select class="form-select" id="starost" aria-label="Floating label select example"></select>
+        <label for="floatingSelect" class="labelL">选择楼层</label>
+      </div>
+    </div>
+
+    <div class="pick-box">
+      <span>拾取户号：</span>
+      <span class="unit-code"></span>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider, // 加载地形
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.fxaa = true;
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 添加模型
+    const tile3d = new Cesium.Cesium3DTileset({
+      url: modelConfig.stratifiedHouseholdDivisionTilesUrl.tilesetUrl,
+      useIndexDB: false,
+      maximumScreenSpaceError: 16
+    });
+    viewer.scene.primitives.add(tile3d);
+    viewer.camera.lookAt(Cesium.Cartesian3.fromDegrees(120.85405378197508, 29.513641731330118, 35.476447210869736), new Cesium.Cartesian3(50, -100, 100));
+  }
+
+  function stratifiedHouseholdDivision() {
+    var unitMap = new Cesium.UnitMap(viewer, { url: layerConfig.fcfh_Vec.layerUrl });
+    var angle = 0;
+    var currDatas = null;
+    var currBuilding = null;
+
+    unitMap.addPickBuildingListener(function (results) {
+      let ids = [];
+      for (var i = 0; i < results.length; i++) {
+        let item = results[i];
+        ids.push(item['lbldid']);
+
+        //拾取的是同一栋楼
+        if (item['lbldid'] == currBuilding) {
+          return;
+        }
+        if (currBuilding) {
+          unitMap.removeFlatTilesets(currBuilding);
+        }
+
+        currBuilding = item['lbldid'];
+        angle = item.lbldangle;
+        unitMap.addFlatTilesets(item.geom, currBuilding);
+      }
+
+      unitMap.queryUnitByIds(ids, function (data) {
+        currDatas = data;
+        // unitMap.addUnits(data,true);
+        let floorNames = unitMap.getFloorNames(data);
+        createSeleced(floorNames);
+        unitMap.addUnits(data, angle, true, {});
+        // unitMap.addUnits(data,angle,true,{outsideWallImage:'../data/inside.jpg',insideWallImage:'../data/inside.jpg',floorImage:'../data/floor2.png'});
+      });
+    });
+
+    unitMap.addPickUnitListener(function (data) {
+      // alert('户号为：' + data['unitnm']);
+      $('.unit-code')[0].innerText = data['unitnm'] || '';
+    });
+
+    function createSeleced(data) {
+      $('.unit-code')[0].innerText = '';
+      $("#starost").html('');
+      var currenOptions = null;
+      for (var i = 0; i < data.length; i++) {
+        if (i == data.length - 1) {
+          currenOptions += "<option value='" + data[i] + "'selected>" + data[i] + "</option>";
+        } else {
+          currenOptions += "<option value='" + data[i] + "'>" + data[i] + "</option>";
+        }
+      }
+      $("#starost").append(currenOptions);
+    }
+
+    $("#starost").change(function (e) {
+      $('.unit-code')[0].innerText = '';
+      var floorName = ($(this).val());
+      unitMap.drawerFloor(currDatas, angle, floorName, {});
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    stratifiedHouseholdDivision();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

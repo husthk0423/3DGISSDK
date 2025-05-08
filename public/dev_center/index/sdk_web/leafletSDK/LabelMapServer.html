@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html  style="overflow : hidden; ">
+<head>
+    <title>后端png注记</title>
+    <meta name="keywords" content="矢量瓦片,矢量索引">
+    <meta name="description" content="矢量瓦片">
+    <meta name="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" href="css/leaflet.css" />
+
+    <!--<script src="js/jquery-3.1.1.js"></script>-->
+    <script src="js/uuid.js"></script>
+    <script src="js/leaflet-src.js"></script>
+    <!--<script src="js/CustomWebSDK.min.js"></script>-->
+    <script src="js/Version.js"></script>
+    <script src="js/es6-promise.js"></script>
+    <script src="js/layer/label/draw/CanvasLayer.js"></script>
+    <script src="js/CRS.CustomEPSG4326.js"></script>
+    <script src="js/layer/label/draw/LabelDrawer.js"></script>
+    <script src="js/layer/datasource/DataSource.js"></script>
+    <script src="js/layer/datasource/URLDataSource.js"></script>
+    <script src="js/filter/Filter.js"></script>
+    <script src="js/filter/FilterLayer.js"></script>
+    <script src="js/layer/datasource/LocalDataSource.js"></script>
+    <script src="js/layer/label/feature/Feature.js"></script>
+    <script src="js/layer/label/GWVTAnno.js"></script>
+    <script src="js/layer/label/avoid/GAnnoAvoid.js"></script>
+    <script src="js/layer/label/avoid/GDistance.js"></script>
+    <script src="js/layer/vector/GXYZ.js"></script>
+    <script src="js/layer/vector/draw/GXYZUtil.js"></script>
+
+</head>
+
+<body onload="init()"  style="margin : 0; ">
+<div id="map" class="map" style ="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+
+<script>
+    function init(){
+        var map = L.map('map',{crs:L.CRS.CustomEPSG4326,center: {lon:120.15, lat:30.268},maxZoom: 21,zoom:8,inertiaDeceleration:15000,inertiaThreshold:2000});
+
+        //添加天地图
+//        var tianditulayer = new L.TileLayer('http://t2.tianditu.com/DataServer?T=vec_c&x={x}&y={y}&l={z}',{tileSize:256});
+//        map.addLayer(tianditulayer);
+
+        //添加底图
+        var layer = new L.GXYZ('http://localhost/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017',{tileSize:512,maxZoom: 21,keepBuffer:0,updateWhenZooming:false});
+        map.addLayer(layer);
+
+
+        //添加注记
+        var layer = new L.GXYZ('http://localhost/mapserver/label/zjvmap/getImg?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017',{tileSize:512,hitDetection:true,keepBuffer:0,updateWhenZooming:false});
+        map.addLayer(layer);
+
+
+
+
+
+    }
+
+</script>
+
+</body>
+</html>

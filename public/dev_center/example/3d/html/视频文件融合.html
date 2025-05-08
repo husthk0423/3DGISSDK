@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>视频文件融合</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../js/config.js"></script>
+    <style>
+      .control-item > span:first-child {
+        width: 91px !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>show</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: show" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>positionX</span>
+          <input type="range" class="form-range" id="customRange" min="114.136424" max="114.140424" step="0.000001" data-bind="value: positionX, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<114.136424)value=114.136424;if(value>114.140424)value=114.140424" data-bind="value: positionX, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>positionY</span>
+          <input type="range" class="form-range" id="customRange" min="35.716116" max="35.720116" step="0.000001" data-bind="value: positionY, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<35.716116)value=35.716116;if(value>35.720116)value=35.720116" data-bind="value: positionY, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>positionZ</span>
+          <input type="range" class="form-range" id="customRange" min="-180.0" max="1000" step="0.1" data-bind="value: positionZ, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>1000)value=1000" data-bind="value: positionZ, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>focalDistance</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="200" step="0.01" data-bind="value: focalDistance, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>200)value=200" data-bind="value: focalDistance, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>alpha</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.1" data-bind="value: alpha, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: alpha, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>near</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.01" data-bind="value: near, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>10)value=10" data-bind="value: near, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>far</span>
+          <input type="range" class="form-range" id="customRange" min="10" max="1000" step="0.1" data-bind="value: far, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<10)value=10;if(value>1000)value=1000" data-bind="value: far, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>aspectRatio</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="5" step="0.01" data-bind="value: aspectRatio, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>5)value=5" data-bind="value: aspectRatio, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>heading</span>
+          <input type="range" class="form-range" id="customRange" min="-180" max="90" step="0.1" data-bind="value: heading, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>90)value=90" data-bind="value: heading, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>pitch</span>
+          <input type="range" class="form-range" id="customRange" min="-180" max="90" step="0.1" data-bind="value: pitch, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-180)value=-180;if(value>90)value=90" data-bind="value: pitch, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>videoPlay</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: videoPlay" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>useMask</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: useMask" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>debug</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: debug" />
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-content">
+        <button type="button" class="btn btn-outline-light btn-item" onclick="addVideo()">添加视频</button>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var cameraVideo;
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: false, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false //不加载cesium提供的图层
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = true; // 深度测试
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+
+      // 添加模型
+      let position = Cesium.Cartesian3.fromDegrees(114.13670281501463, 35.719012432291045, 0);
+      let headingPitchRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(30), Cesium.Math.toRadians(0), Cesium.Math.toRadians(0));
+      let modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(position, headingPitchRoll, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, new Cesium.Matrix4());
+      viewer.scene.primitives.add(
+        Cesium.Model.fromGltf({
+          url: '../data/gltf/屏幕.glb',
+          modelMatrix: modelMatrix,
+          scale: 10
+        })
+      );
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.13929398422795, 35.71769977794461, 67.17167644495278),
+        orientation: {
+          heading: Cesium.Math.toRadians(301.289994015703),
+          pitch: Cesium.Math.toRadians(-8.434630329927751),
+          roll: 0
+        }
+      });
+    }
+
+    function addVideo() {
+      if (cameraVideo) return;
+
+      // 视频融合
+      var viewModel = {
+        show: true,
+        positionX: 114.138424,
+        positionY: 35.718116,
+        positionZ: 28.9,
+        position: { x: 114.138424, y: 35.718116, z: 28.9 },
+        focalDistance: 1,
+        alpha: 0.8,
+        near: 1,
+        far: 1000,
+        aspectRatio: 1.78,
+        heading: -58.3,
+        pitch: 2,
+        videoType: 'mp4',
+        videoPlay: true,
+        useMask: true,
+        debug: true,
+        maskUrl: `../../img/mask.png`,
+        videoSource: `../data/video/夺丰1号正射2分钟.mp4`
+      };
+      cameraVideo = new Cesium.Video(viewer, viewModel);
+      viewer.scene.primitives.add(cameraVideo);
+
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      function updatePostProcess() {
+        cameraVideo.show = Boolean(viewModel.show);
+        cameraVideo.position = { x: Number(viewModel.positionX), y: Number(viewModel.positionY), z: Number(viewModel.positionZ) };
+        cameraVideo.focalDistance = Number(viewModel.focalDistance);
+        cameraVideo.alpha = Number(viewModel.alpha);
+        cameraVideo.near = Number(viewModel.near);
+        cameraVideo.far = Number(viewModel.far);
+        cameraVideo.aspectRatio = Number(viewModel.aspectRatio);
+        cameraVideo.heading = Number(viewModel.heading);
+        cameraVideo.pitch = Number(viewModel.pitch);
+        cameraVideo.videoPlay = Boolean(viewModel.videoPlay);
+        cameraVideo.useMask = Boolean(viewModel.useMask);
+        cameraVideo.debug = Boolean(viewModel.debug);
+      }
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

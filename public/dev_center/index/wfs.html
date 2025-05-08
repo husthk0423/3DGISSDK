@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html  style="overflow : hidden; ">
+<head>
+<title>wfs服务</title>
+<meta name="keywords" content="矢量瓦片,矢量索引">
+<meta name="description" content="矢量瓦片">
+<meta name="content-type" content="text/html; charset=UTF-8">
+<link href="./css/viewer.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="./lib/jquery/jquery-1.11.1.js"></script>
+<link href="./lib/codemirror-4.5/lib/codemirror.css" type="text/css" rel="stylesheet"/>
+<script type="text/javascript" src="./js/wfs.js"></script>
+
+<style type="text/css">
+html{
+overflow: hidden;
+}
+.CodeMirror{
+	font-family:Consolas,monaco,'Courier New', Courier, monospace;
+	position: absolute;
+	bottom: 0px;
+	top: 33px;
+	width:100%;
+}
+.CodeMirror pre{
+	line-height:1.5em;
+}
+.CodeMirror-sizer{
+	padding-left:2px;
+}
+	
+#drag{
+	width: 2px;
+	height: 100%;
+	background: #eee;
+	cursor: w-resize;
+	float:left;
+}
+
+.markdown-section {
+    margin: 0 auto !important;
+    padding: 12px 0px 40px !important;
+    position: relative !important;
+	max-width: 100% !important;
+}
+
+</style>
+
+
+<!-- 代码高亮编辑显示，需加入对应的mode模块 -->
+<script type="text/javascript" src="./lib/codemirror-4.5/lib/codemirror.js"></script>
+<script type="text/javascript" src="./lib/codemirror-4.5/mode/xml/xml.js"></script>
+<script type="text/javascript" src="./lib/codemirror-4.5/mode/css/css.js"></script>
+<script type="text/javascript" src="./lib/codemirror-4.5/mode/javascript/javascript.js"></script>
+<script type="text/javascript" src="./lib/codemirror-4.5/mode/htmlmixed/htmlmixed.js"></script>
+<!-- 复制功能 -->
+<script type="text/javascript" src="./lib/clipboard.min.js"></script>
+<script type="text/javascript">
+     
+	$(document).ready(function(){
+		Example.init();
+	});
+
+</script>
+</head>
+
+<body>
+	<div class="code_area" id="codeAreaDiv" style="display: block;">
+		<div class="code_area_title">
+			<div class="fl">源代码</div>
+			<div class="fr code_title_but">
+				<a id="copy-button" href="#" >复制代码</a> 
+				<a id="run-button" href="#" class="run">运行</a>
+			</div>
+		</div>
+				
+		<div class="code_area_con">
+			<textarea id="myresource" style="display: none; ">
+			
+			</textarea>
+		</div>
+
+	</div>
+	<div class="mapCon" id="exampleCon" >
+		<!--<div class="code_close" id="codeDivCloseBtn" onclick="Example.codeDivCloseBtnClick(this)"></div>-->
+		<iframe id="map-iframe" src="../index/sdk_web/leafletSDK/wfs.html"></iframe>
+	</div>
+
+<script>
+    
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>边缘选中</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style></style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list">
+      <div class="control-body">
+        <div class="control-item">
+          <span>轮廓</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: silhouette" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>黑白</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: blackAndWhiteShow" />
+          </div>
+
+          <input type="range" class="form-range" id="customRange" min="1" max="10" step="1" data-bind="value: blackAndWhiteGradations, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>10)value=10" data-bind="value: blackAndWhiteGradations, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>亮度</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: brightnessShow" />
+          </div>
+
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.01" data-bind="value: brightnessValue, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: brightnessValue, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>夜视</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: nightVisionShow" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: true, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false, //不加载cesium提供的图层
+      });
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+
+      viewer.trackedEntity = viewer.entities.add({
+        name: 'tenement',
+        position: Cesium.Cartesian3.fromDegrees(114.29585215160193, 35.72249770542608, 0),
+        model: {
+          uri: '../data/gltf/房屋.glb',
+          maxumunScale: 1,
+        },
+      });
+
+      // 绑定控件
+      const viewModel = {
+        blackAndWhiteShow: false, // 开启黑白
+        blackAndWhiteGradations: 5.0, // 黑白渐变
+        brightnessShow: false, // 开启亮度
+        brightnessValue: 0.5, // 亮度值
+        nightVisionShow: false, // 开启夜视
+        silhouette: true, // 开启轮廓
+      };
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      if (!Cesium.PostProcessStageLibrary.isSilhouetteSupported(viewer.scene)) {
+        window.alert('This browser does not support the silhouette post process.');
+      }
+
+      const stages = viewer.scene.postProcessStages;
+      const silhouette = stages.add(Cesium.PostProcessStageLibrary.createSilhouetteStage());
+      const blackAndWhite = stages.add(Cesium.PostProcessStageLibrary.createBlackAndWhiteStage());
+      const brightness = stages.add(Cesium.PostProcessStageLibrary.createBrightnessStage());
+      const nightVision = stages.add(Cesium.PostProcessStageLibrary.createNightVisionStage());
+
+      function updatePostProcess() {
+        silhouette.enabled = Boolean(viewModel.silhouette);
+        silhouette.uniforms.color = Cesium.Color.YELLOW;
+        blackAndWhite.enabled = Boolean(viewModel.blackAndWhiteShow);
+        blackAndWhite.uniforms.gradations = Number(viewModel.blackAndWhiteGradations);
+        brightness.enabled = Boolean(viewModel.brightnessShow);
+        brightness.uniforms.brightness = Number(viewModel.brightnessValue);
+        nightVision.enabled = Boolean(viewModel.nightVisionShow);
+      }
+      updatePostProcess();
+    }
+
+    function startup(Cesium) {
+      'use strict';
+      createMap();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

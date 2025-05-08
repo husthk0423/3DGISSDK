@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>过滤注记要素</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/theme/default/style.css" type="text/css">
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/openlayers/OpenLayers.debug.js"></script>
+  <script src="../../js/openlayers/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = new OpenLayers.Map({
+        div: "map",
+        projection: "EPSG:4326",
+        numZoomLevels: 19
+      });
+
+      //512格网的瓦片
+      var size = new OpenLayers.Size(512, 512);
+      var labelLayer = new OpenLayers.Layer.GWVTAnno("GWVTAnno", {
+        tileSize: size,
+        opacity: 1,
+        isBaseLayer: true
+      });
+      var dataSource = new Custom.URLDataSource();
+      dataSource.url =
+        'http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017';
+
+      //过滤，只显示设置的要素
+      var filter = new Custom.Filter();
+      filter.otherDisplay = false;
+
+      var filterLayer = new Custom.FilterLayer();
+      filterLayer.id = '交通_交通注记_公路';
+      filter.addFilterLayer(filterLayer);
+
+      dataSource.setFilter(filter);
+      labelLayer.addDataSource(dataSource);
+      map.addLayer(labelLayer);
+      map.setCenter(new OpenLayers.LonLat(120.11215287988154, 30.177052933991797), 12);
+    }
+  </script>
+
+</body>
+
+</html>

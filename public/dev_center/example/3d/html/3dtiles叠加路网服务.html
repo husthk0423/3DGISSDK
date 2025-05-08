@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+  <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+  <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+  <title>3dtiles叠加路网服务</title>
+
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<script>
+  var viewer;
+  var tile3d;
+  var fps = '60FPS';
+  function startup(Cesium) {
+    createMap();
+  }
+
+  var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+    requestVertexNormals: true,
+    url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+  });
+
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider,
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false,  //是否显示动画控件
+      baseLayerPicker: false, //是否显示图层选择控件
+      geocoder: false, //是否显示地名查找控件
+      timeline: false, //是否显示时间线控件
+      sceneModePicker: true, //是否显示投影方式控件
+      navigationHelpButton: false, //是否显示帮助信息控件
+      infoBox: false,  //是否显示点击要素之后显示的信息
+      imageryProvider: false,
+      fullscreenButton: true
+    });
+
+    viewer.scene.globe.preloadAncestors = false;
+
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    var imageryLayers = viewer.imageryLayers;
+
+    Cesium.viewer = viewer;
+
+
+
+
+
+    // //天地图影像图层
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://t0.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+        "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+        "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 18,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+
+
+
+    //加载路网叠在模型上
+    var landLayerModel = new Cesium.ImageryLayer(
+      new Cesium.EnvelopeWmtsImageryProvider(viewer, {
+        url: layerConfig.azcdl_Vec.layerUrl,
+        layer: "",
+        style: "",
+        format: "",
+        tileMatrixSetID: "",
+        tilingScheme: new Cesium.GeographicTilingScheme(),
+        tileMatrixLabels: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+        maximumLevel: 18,
+        tileWidth: 512,
+        tileHeight: 512,
+      })
+    );
+
+    viewer.imageryLayers.add(landLayerModel);
+
+    //加载路网叠在非模型上
+    var landLayerModel1 = new Cesium.ImageryLayer(
+      new Cesium.WebMapTileServiceImageryProvider({
+        url: layerConfig.azcdl_Vec.layerUrl,
+        layer: "",
+        style: "",
+        format: "",
+        tileMatrixSetID: "",
+        tilingScheme: new Cesium.GeographicTilingScheme(),
+        tileMatrixLabels: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+        maximumLevel: 18,
+        tileWidth: 512,
+        tileHeight: 512,
+      })
+    );
+
+    viewer.imageryLayers.add(landLayerModel1);
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.27282305322241, 35.71420634836172, 1033.839251858932), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(33.3076341395792),
+        pitch: Cesium.Math.toRadians(-26.853910111364602),
+        roll: 0
+      }
+    });
+
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    tile3d.readyPromise.then(tileset => {
+      var boundingSphere = tileset.boundingSphere;
+      var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+      var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+      var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -74);
+      var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+      tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+      viewer.scene.primitives.add(tileset);
+    });
+
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup(Cesium);
+  }
+</script>
+</body>
+
+</html>

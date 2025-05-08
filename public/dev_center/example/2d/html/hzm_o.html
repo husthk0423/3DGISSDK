@@ -1,0 +1,90 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>绘制面</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/theme/default/style.css" type="text/css">
+  <!--引入生僻字css-->
+  <link rel="stylesheet" href="css/rarefont.css" />
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/openlayers/OpenLayers.debug.js"></script>
+  <script src="../../js/openlayers/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = new OpenLayers.Map({
+        div: "map",
+        projection: "EPSG:4326",
+        numZoomLevels: 22
+      });
+
+      //512格网的瓦片
+      var size = new OpenLayers.Size(512, 512);
+      var layer = new OpenLayers.Layer.GXYZ("layer",
+        'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017', {
+          isBaseLayer: true,
+          tileSize: size
+        });
+      map.addLayer(layer);
+
+      //512格网的瓦片
+      var labelLayer = new OpenLayers.Layer.GWVTAnno("GWVTAnno", {
+        tileSize: size,
+        opacity: 1
+      });
+      var dataSource = new Custom.URLDataSource();
+      dataSource.url =
+        'http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017';
+      labelLayer.addDataSource(dataSource);
+      map.addLayer(labelLayer);
+      map.setCenter(new OpenLayers.LonLat(121.4302, 28.6024), 10);
+
+
+
+
+      var renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
+      renderer = (renderer) ? [renderer] : OpenLayers.Layer.Vector.prototype.renderer;
+
+      var layer = new OpenLayers.Layer.Vector("simple geometry", {
+        styleMap: new OpenLayers.StyleMap({
+          "default": new OpenLayers.Style()
+        }),
+        renderer: renderer
+      });
+
+      var point = new OpenLayers.Geometry.Point(121.4302, 28.6024);
+      var pointFeature = new OpenLayers.Feature.Vector(point);
+      pointFeature.attributes = {
+        topic: "point_invisible"
+      };
+      var pointList = [];
+      for (var p = 0; p < 5; ++p) {
+        var a = p * (2 * Math.PI) / 7;
+        var r = Math.random(1) + 1;
+        var newPoint = new OpenLayers.Geometry.Point(121.4302 + (r * Math.cos(a)) / 10,
+          28.6024 + (r * Math.sin(a)) / 10);
+        pointList.push(newPoint);
+      }
+      var linearRing = new OpenLayers.Geometry.LinearRing(pointList);
+      var polygonFeature = new OpenLayers.Feature.Vector(
+        new OpenLayers.Geometry.Polygon([linearRing]));
+      polygonFeature.attributes = {
+        topic: "polygon_defaults"
+      };
+      var multiFeature = new OpenLayers.Feature.Vector();
+      map.addLayer(layer);
+      layer.drawFeature(multiFeature);
+      layer.addFeatures([polygonFeature, multiFeature]);
+
+    }
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>雨天</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="btn-content">
+      <button type="button" class="btn btn-outline-light btn-item" onclick="small()">小雨</button>
+      <button type="button" class="btn btn-outline-light btn-item" onclick="middle()">中雨</button>
+      <button type="button" class="btn btn-outline-light btn-item" onclick="big()">大雨</button>
+      <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">清除</button>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+  var collection;
+  var stage;
+  var ReflectWater;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      fullscreenButton: false, // 是否显示全屏按钮控件
+      vrButton: false, // 是否显示vr按钮控件
+      geocoder: false, // 是否显示地名查找控件
+      homeButton: false, // 是否显示主页按钮控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      sceneModePicker: false, // 是否显示投影方式控件
+      selectionIndicator: false, // 是否获取选择周指示器
+      timeline: false, // 是否显示时间线控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      // contextOptions:{
+      //   requestWebgl2:true
+      // },
+      // msaaSamples:4,
+      imageryProvider: false, //不加载cesium提供的图层
+    });
+    viewer._cesiumWidget._creditContainer.style.display = "none"; // 去除icon
+    viewer.scene.globe.depthTestAgainstTerrain = true; // 深度测试
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#99ccff");
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.1346072017232, 35.72094581169414, 16.88212505557284),
+      orientation: {
+        heading: Cesium.Math.toRadians(157.99275639868836),
+        pitch: Cesium.Math.toRadians(1.2929307625180788),
+        roll: Cesium.Math.toRadians(359.99996147704707)
+      }
+    });
+
+    // 添加模型
+    let position = Cesium.Cartesian3.fromDegrees(114.13670281501463, 35.719012432291045, 0);
+    let headingPitchRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(30), Cesium.Math.toRadians(0), Cesium.Math.toRadians(0));
+    let modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(position, headingPitchRoll, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, new Cesium.Matrix4());
+    viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      url: '../data/gltf/坝.glb',
+      modelMatrix: modelMatrix,
+      scale: 3,
+    }));
+
+    collection = viewer.scene.postProcessStages;
+  }
+
+  // 添加水面
+  function addWater() {
+    ReflectWater = new Cesium.ReflectWater(viewer, {
+      positions: waterPosition,
+      height: 1, // 起始高度
+      normalMapUrl: '../../img/water.jpg',
+      waterColor: '#99ccff', // 水面颜色
+      gapFrame: 2, // 反射清晰度,值越大反射越清晰
+      distortionScale: 0.2, // 形变大小,值越大水面波动越大
+      rippleSize: new Cesium.Cartesian2(500, 300) // 涟漪大小
+    });
+  }
+
+  // 小雨
+  function small() {
+    remove();
+
+    stage = Cesium.PostProcessStageLibrary.createRainStage({
+      density: 0.1, // 密度 值越大雨效果越大
+      size: 0.1,    // 粗细 值越大雨效果越大
+      speed: 0.1    // 速度 值越大雨效果越大
+    });
+    collection.add(stage);
+    ReflectWater.rippleSize = new Cesium.Cartesian2(300, 150);
+  }
+
+  // 中雨
+  function middle() {
+    remove();
+
+    stage = Cesium.PostProcessStageLibrary.createRainStage({
+      density: 0.5, // 密度 值越大雨效果越大
+      size: 0.5,    // 粗细 值越大雨效果越大
+      speed: 0.5    // 速度 值越大雨效果越大
+    });
+    collection.add(stage);
+    ReflectWater.rippleSize = new Cesium.Cartesian2(200, 100);
+  }
+
+  // 大雨
+  function big() {
+    remove();
+
+    stage = Cesium.PostProcessStageLibrary.createRainStage({
+      density: 1, // 密度 值越大雨效果越大
+      size: 1,    // 粗细 值越大雨效果越大
+      speed: 1    // 速度 值越大雨效果越大
+    });
+    collection.add(stage);
+    ReflectWater.rippleSize = new Cesium.Cartesian2(100, 50);
+  }
+
+  // 清除
+  function remove() {
+    if (stage) {
+      collection.remove(stage);
+      stage = null;
+      ReflectWater.rippleSize = new Cesium.Cartesian2(500, 300);
+    }
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    addWater();
+  }
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

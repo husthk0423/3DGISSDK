@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拾取物体</title>
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/turf.min.js"></script>
+    <script src="../js/config.js"></script>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="bottom-control">经度：<span class="lng"></span> 纬度：<span class="lat"></span> 高度：<span class="height"></span></div>
+
+    <!-- 信息弹窗面板 -->
+    <div class="info-popup-box">
+      <div class="popup-line"></div>
+
+      <div class="popup-body">
+        <div class="popup-header">
+          <span class="header-title">信息面板</span>
+
+          <span class="close-btn" onclick="removeQuery()">x</span>
+        </div>
+
+        <div class="popup-content"></div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var tooltip;
+    var highlight;
+    var isQuery = false;
+    var element = $('.info-popup-box').clone()[0];
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider, // 加载地形
+        selectionIndicator: false, // 是否获取选择周指示器
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        imageryProvider: false, // 不加载cesium提供的图层
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: true, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        infoBox: false // 是否显示点击要素之后显示的信息
+      });
+
+      var tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      const tile3d = new Cesium.Cesium3DTileset({
+        url: modelConfig.stratifiedHouseholdDivisionTilesUrl.tilesetUrl,
+        useIndexDB: false,
+        maximumScreenSpaceError: 16
+      });
+      viewer.scene.primitives.add(tile3d);
+      viewer.camera.lookAt(Cesium.Cartesian3.fromDegrees(120.85405378197508, 29.513641731330118, 35.476447210869736), new Cesium.Cartesian3(50, -100, 100));
+    }
+
+    function createAnalyze() {
+      tooltip = document.createElement('DIV');
+      document.body.appendChild(tooltip);
+      tooltip.style = 'position: absolute;background: rgba(0,0,0,0.5); z-index: 999;line-height: 18px;pointer-events: none;';
+      tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击拾取</span>';
+    }
+
+    // 拾取物体
+    function createPick() {
+      document.body.style.cursor = 'pointer';
+      var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+      handler.setInputAction(e => {
+        let cartesian = null;
+        let primitive = viewer.scene.pick(e.position);
+        if (primitive) {
+          cartesian = viewer.scene.pickPosition(e.position);
+        } else {
+          let ray = viewer.camera.getPickRay(e.position);
+          cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+        }
+        if (!cartesian) return;
+        const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        const lng = Cesium.Math.toDegrees(cartographic.longitude);
+        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+        const height = cartographic.height;
+        const parms = { lng, lat, height, cartesian };
+        queryRequest(parms);
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+      handler.setInputAction(movement => {
+        tooltip.style.left = movement.endPosition.x + 5 + 'px';
+        tooltip.style.top = movement.endPosition.y - 28 + 'px';
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }
+
+    // 查询
+    function queryRequest(parms) {
+      if (isQuery) return;
+      isQuery = true;
+
+      $('.lng')[0].innerText = parms.lng;
+      $('.lat')[0].innerText = parms.lat;
+      $('.height')[0].innerText = parms.height;
+
+      var url = `${fcfhServiceUrl}/mapserver/分层分户测试/building4326/query?spatialFilter=POINT(${parms.lng} ${parms.lat})&withGeometry=true`;
+      $.ajax({
+        type: 'GET',
+        url: url,
+        dataType: 'JSON',
+        success: res => {
+          removeHighlight();
+          if (res && res.length) {
+            var readPolygon = new Cesium.Wkt().read(res[0].geom);
+            var positions = readPolygon.components[0][0].map(e => {
+              return [e.x, e.y];
+            });
+            positions.push(positions[0]);
+            var polygonF = turf.polygon([positions]);
+            var buffered = turf.buffer(polygonF, 6, { units: 'meters' });
+            var coordinates = buffered.geometry.coordinates;
+            var bufferPosition = coordinates[0];
+            var newPositions = [].concat(...bufferPosition);
+            addHighlight(newPositions);
+            addPopup(parms.cartesian);
+            setPanelInfo(res[0], parms);
+          }
+        },
+        error: err => {
+          removeHighlight();
+          console.log('查询图层报错：', err);
+        }
+      });
+    }
+
+    // 添加高亮
+    function addHighlight(positions) {
+      var polygonInstance = new Cesium.GeometryInstance({
+        id: 'pick_highlight',
+        geometry: Cesium.PolygonGeometry.fromPositions({
+          positions: Cesium.Cartesian3.fromDegreesArray(positions),
+          height: 1,
+          extrudedHeight: 300,
+          vertexFormat: Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT
+        }),
+
+        attributes: {
+          color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.fromCssColorString('#4e6ed8').withAlpha(0.6))
+        }
+      });
+      highlight = new Cesium.ClassificationPrimitive({
+        geometryInstances: [],
+        classificationType: Cesium.ClassificationType.CESIUM_3D_TILE,
+        asynchronous: false,
+        appearance: new Cesium.PerInstanceColorAppearance({
+          closed: true,
+          translucent: true
+        })
+      });
+      highlight.geometryInstances.push(polygonInstance);
+      viewer.scene.primitives.add(highlight);
+    }
+
+    function removeHighlight() {
+      if (highlight) {
+        viewer.scene.primitives.remove(highlight);
+      }
+      highlight = null;
+      isQuery = false;
+    }
+
+    // 添加信息面板
+    function addPopup(cartesian) {
+      !element && (element = $('.info-popup-box').clone()[0]);
+      let option = {
+        element: element,
+        position: cartesian,
+        offset: {
+          x: 0, // 向屏幕左边平移的像素值
+          y: 0 // 向屏幕下方平移的像素值
+        }
+      };
+      currOverlay = new Cesium.Overlay(option);
+      viewer.addOverlay(currOverlay);
+      currOverlay.show();
+    }
+
+    // 移除弹窗
+    function removePopup() {
+      currOverlay && currOverlay.destroy();
+      currOverlay = null;
+    }
+
+    function removeQuery() {
+      removeHighlight();
+      removePopup();
+    }
+
+    function setPanelInfo(info, parms) {
+      $('.header-title')[0].innerText = info.bldname;
+      var contentInfo = {
+        '小区名称：': info.bldname,
+        '地址：': info.cmtnm,
+        '拾取经度：': parms.lng.toFixed(6),
+        '拾取纬度：': parms.lat.toFixed(6),
+        '拾取高度：': parms.height.toFixed(6)
+      };
+      $('.popup-content').empty();
+      for (let k in contentInfo) {
+        var contentItem = $(`<div class="content-item"><span class="item-left">${k}</span><span class="item-right">${contentInfo[k]}</span></div>`);
+        $('.popup-content').append(contentItem);
+      }
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+      createAnalyze();
+      createPick();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

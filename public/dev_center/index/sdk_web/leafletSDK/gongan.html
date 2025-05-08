@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html  style="overflow : hidden; ">
+<head>
+    <title>叠加公安数据</title>
+    <meta name="keywords" content="矢量瓦片,矢量索引">
+    <meta name="description" content="矢量瓦片">
+    <meta name="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" href="css/leaflet.css" />
+
+    <script src="js/jquery-3.1.1.js"></script>
+    <script src="js/uuid.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/CustomWebSDK.js"></script>
+
+</head>
+<style>
+    .maptype-container{
+        position:absolute; 
+        right: 20px; 
+        bottom: 5px; 
+        z-index: 10000;    
+        font-size: 12px;
+        color: #f9eded;
+    }
+    .image {
+        left: 5px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 -120px;
+        right: 10px;
+        z-index: 4;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+    }
+    .vector {
+        left: 5px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 0px;
+        right: 5px;
+        z-index: 3;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+        opacity: 1;
+    }
+    dt {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        font-size: 12px;
+        text-align: center;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4AWNiaAAAAIkAgxImDHoAAAAASUVORK5CYII=);
+    }
+    dt.on{
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWNicJ/XAAACoAFoZOWciwAAAABJRU5ErkJggg==);
+    }
+    .label {
+        bottom: 58px;
+        right: 20px;
+        height: 20px;
+        width: 88px;
+        position: absolute;
+        z-index: 200000000000000000000000;
+        font-size: 12px;
+        color: #fff;
+    }
+    input#v-check {
+        position: absolute;
+        right: 56px;
+    }
+    span {
+        height: 20px;
+        width: 80px;
+        position: absolute;
+        right: -23px;
+    }
+</style>
+<body onload="init()"  style="margin : 0; ">
+<div id="map" class="map" style ="position:absolute;bottom:0px;top:0px;width:100%"></div>
+<div class="maptype-container">
+    <div class="maptype">
+        <dl class="vector">
+            <dt class="on">叠加注记</dt>
+        </dl>
+    </div>
+</div>
+
+<script>
+    var map = null;
+    var labelGasj = null;
+    //var gaDataSource = null;
+    function init(){
+        var map = L.map('map',{crs:L.CRS.CustomEPSG4326,center: {lon:120.558, lat:30.0092},maxZoom: 20,zoom:18,inertiaDeceleration:15000,inertiaThreshold:2000});
+        //添加底图
+        var layer = new L.GXYZ('https://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017',{tileSize:512,maxZoom: 20,minZoom:3});
+        map.addLayer(layer);
+
+        //添加注记图层
+        labelGasj = new L.GWVTAnno({tileSize:512});
+        var dataSource = new Custom.URLDataSource();
+        dataSource.url = 'https://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017';
+        labelGasj.addDataSource(dataSource);
+
+        map.addLayer(labelGasj);
+
+        map.on('click', function(e) {
+            var latlng =e.latlng;
+            var event = e.originalEvent;
+            //拾取要素
+            var features = layer.getFeatureByXY(event.x,event.y,function(layerFeatures){
+                //高亮
+                delete layerFeatures['政区境界_行政区划面'];
+                layer.highlightFeatures(layerFeatures,{color:"#ff00ff",opacity:0.4})
+            });
+        });
+        this.bindEvent();
+    }
+    function addGasj(){
+        var dataSource1 =  new Custom.URLDataSource();
+        dataSource1.url = 'https://ditu.zjzwfw.gov.cn/mapserver/label/gasj/getDatas?x=${x}&y=${y}&l=${z}&styleId=gasj_gasj_20171012';
+        dataSource1.id = "label_gasj";
+        labelGasj.addDataSource(dataSource1);
+        labelGasj.redraw();
+    }
+    function bindEvent(){
+        var that = this;
+        $(".vector").click(function(){
+            $("dt").toggleClass("on");
+            if($("dt").hasClass("on")){
+                labelGasj.removeDataSourceById("label_gasj");
+                labelGasj.redraw();
+            }else{
+                that.addGasj();
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>加载栅格底图</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/theme/default/style.css" type="text/css">
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/openlayers/OpenLayers.debug.js"></script>
+  <script src="../../js/openlayers/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = new OpenLayers.Map({
+        div: "map",
+        projection: "EPSG:4326",
+        zoom: 10,
+        center: new OpenLayers.LonLat(120.15, 30.268)
+      });
+
+      //512格网的瓦片
+      var size = new OpenLayers.Size(512, 512);
+      var layer = new OpenLayers.Layer.GXYZ("layer",
+        'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017', {
+          isBaseLayer: true,
+          tileSize: size
+        });
+      map.addLayer(layer);
+    }
+  </script>
+
+</body>
+
+</html>

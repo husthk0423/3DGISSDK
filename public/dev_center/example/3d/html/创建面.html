@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>创建面</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: 'http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=eec8c7ee00d8d62dd60a274aa1a1beb5',
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 添加圆形面
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: new Cesium.GeometryInstance({
+          geometry: new Cesium.CircleGeometry({
+            center: Cesium.Cartesian3.fromDegrees(114.29294007507806, 35.72325541185435),
+            radius: 100,
+            height: 10, // primitives 离椭球体的高度
+            numberOfVerticalLines: 16 // 圆的边线条数，越多圆的形状越光滑
+          }),
+          id: "CircleGeometry"
+        }),
+        appearance: new Cesium.EllipsoidSurfaceAppearance({
+          aboveGround: false,
+          material: Cesium.Material.fromType('Color', {
+            color: Cesium.Color.AQUA
+          })
+        })
+      })
+    );
+
+    // 添加矩形
+    viewer.scene.primitives.add(new Cesium.Primitive({
+      geometryInstances: new Cesium.GeometryInstance({
+        geometry: new Cesium.RectangleGeometry({
+          rectangle: Cesium.Rectangle.fromDegrees(114.29555576927855, 35.722245252241905, 114.2968725932679, 35.72356081671462),
+          vertexFormat: Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT,
+          stRotation: Cesium.Math.toRadians(45)
+        })
+      }),
+      appearance: new Cesium.EllipsoidSurfaceAppearance({
+        material: Cesium.Material.fromType('Stripe')
+      })
+    }));
+
+    // 添加多边形面
+    var polygonHierarchy = {
+      // 外圈
+      positions: Cesium.Cartesian3.fromDegreesArray([
+        114.30363135342041, 35.72440516781265,
+        114.30004333430662, 35.72437493128164,
+        114.29794384994547, 35.721666406043,
+        114.2968533052726, 35.7199690730846,
+        114.29936023372358, 35.72047933204963
+      ]),
+      // 内圈
+      holes: [{
+        positions: Cesium.Cartesian3.fromDegreesArray([
+          114.29977397819843, 35.72292275965629,
+          114.2990315080063, 35.722045164141484,
+          114.2995475463956, 35.72159228637289,
+          114.30089799204896, 35.72279179105819
+        ]),
+      },],
+    };
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: [
+          new Cesium.GeometryInstance({
+            geometry: new Cesium.PolygonGeometry({
+              polygonHierarchy: polygonHierarchy,
+              vertexFormat: Cesium.PerInstanceColorAppearance.VERTEX_FORMAT,
+            }),
+            attributes: {
+              color: Cesium.ColorGeometryInstanceAttribute.fromColor(
+                Cesium.Color.fromRandom({
+                  alpha: 1.0
+                })
+              ),
+            }
+          })
+        ],
+        appearance: new Cesium.PerInstanceColorAppearance({
+          translucent: false,
+          closed: true,
+        }),
+      })
+    );
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.29343663013724, 35.71509772852922, 437.7322358950821),
+      orientation: {
+        heading: Cesium.Math.toRadians(18.467521399221052),
+        pitch: Cesium.Math.toRadians(-25.841296181768428),
+        roll: 0
+      }
+    });
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

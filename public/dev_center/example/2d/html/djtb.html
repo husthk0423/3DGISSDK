@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>叠加图标</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/leaflet.css" />
+  <link rel="stylesheet" href="../../css/rarefont.css" />
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%"></div>
+
+  <script src="../../js/leaflet/leaflet.js"></script>
+  <script src="../../js/leaflet/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = L.map('map', {
+        crs: L.CRS.CustomEPSG4326,
+        center: {
+          lon: 121.4302,
+          lat: 28.6024
+        },
+        zoom: 16,
+        inertiaDeceleration: 15000,
+        maxZoom: 20
+      });
+         //添加底图
+         var layer = new L.TileLayer(
+        'http://t0.tianditu.gov.cn/vec_c/wmts?tk=eec8c7ee00d8d62dd60a274aa1a1beb5&SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=c&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles', { tileSize: 256 });
+     map.addLayer(layer);
+
+      var greenIcon = L.icon({
+        iconUrl: '../../img/flag.png',
+        iconSize: [70, 95], // size of the icon
+        iconAnchor: [4, 47]
+      });
+      L.marker(map.getCenter(), {
+        icon: greenIcon
+      }).addTo(map); //图片点，固定大小
+    }
+  </script>
+
+</body>
+
+</html>

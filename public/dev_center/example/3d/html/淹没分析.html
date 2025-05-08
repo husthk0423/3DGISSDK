@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>淹没分析</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../js/config.js"></script>
+    <style>
+      .btn-item {
+        width: 110px !important;
+      }
+
+      .content-label label {
+        width: 194px !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="btn-content">
+        <button type="button" class="btn btn-outline-light btn-item" onclick="volume()">绘制分析范围</button>
+        <button type="button" class="btn btn-outline-light btn-item" onclick="analysis()">开始分析</button>
+        <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">清除</button>
+      </div>
+
+      <div class="label-content box">
+        <div class="content-label"><label>区域最低海拔（米）</label><input type="number" class="label-input input1" /></div>
+        <div class="content-label"><label>淹没最高海拔（米）</label><input type="number" class="label-input input2" /></div>
+        <div class="content-label"><label>水体淹没效果（米/秒）</label><input id="maxHeight" class="label-input input3" /></div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var _handlers;
+    var _drawLayer;
+    var _last_clickTime;
+    var _last_clickPositionX;
+    var _last_clickPositionY;
+    var analysisPositions;
+    var _polygonEntity;
+    var tooltip;
+    var flowWaterPrimitive;
+    var timer;
+
+    function createMap() {
+      let cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: terrainUrl
+      });
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider,
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: false, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false //不加载cesium提供的图层
+      });
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.scene.primitives.destroyPrimitives = false;
+      viewer.scene.postProcessStages.fxaa.enabled = true;
+      var imageryLayers = viewer.imageryLayers;
+      // 去掉entity的默认双击追踪，防止双击结束的时候点击到entity上引起视角跳转
+      viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+      var tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.1390147859212, 35.71439334340216, 482.41799461890247),
+        orientation: {
+          heading: Cesium.Math.toRadians(324.5050578592283),
+          pitch: Cesium.Math.toRadians(-24.836339657794312),
+          roll: Cesium.Math.toRadians(0.0003618122411260613)
+        }
+      });
+    }
+
+    function createMeasure() {
+      tooltip = document.createElement('DIV');
+      document.body.appendChild(tooltip);
+      tooltip.style = 'position: absolute;background: rgba(0,0,0,0.5); z-index: 999;line-height: 18px;pointer-events: none;';
+      tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击开始，双击结束</span>';
+      tooltip.style.display = 'block';
+      _drawLayer = new Cesium.CustomDataSource('drawLayer');
+      viewer.dataSources.add(_drawLayer);
+      _polygonEntity = new Cesium.Entity();
+    }
+
+    // 开始绘制
+    function volume() {
+      m_start(); // 量算开启状态
+
+      if (viewer) {
+        var positions = [],
+          polygon = new Cesium.PolygonHierarchy(),
+          $this = this,
+          polyObj = null,
+          _label = '';
+        _handlers = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+        // left
+        _handlers.setInputAction(function (movement) {
+          // 连续单击或者双击，不处理后面一个点
+          if (isNearPoint(movement)) {
+            return;
+          }
+
+          var cartesian = pickPosition(movement.position);
+          if (cartesian && cartesian.x) {
+            if (positions.length == 0) {
+              polygon.positions.push(cartesian.clone());
+              positions.push(cartesian.clone());
+            }
+            positions.push(cartesian.clone());
+            polygon.positions.push(cartesian.clone());
+
+            if (!polyObj) create();
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        // move
+        _handlers.setInputAction(function (movement) {
+          setTooltipPos(movement); // 设置tooltip位置
+          var cartesian = pickPosition(movement.endPosition);
+          if (positions.length >= 2) {
+            if (cartesian && cartesian.x) {
+              positions.pop();
+              positions.push(cartesian);
+              polygon.positions.pop();
+              polygon.positions.push(cartesian);
+            }
+          }
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+        // double-left
+        _handlers.setInputAction(function (movement) {
+          m_end(); // 量算结束状态
+          _addInfoPoint(positions[positions.length - 1]);
+        }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+        function create() {
+          _polygonEntity.polyline = {
+            width: 3,
+            material: Cesium.Color.fromCssColorString('#7FFF00'),
+            clampToGround: true
+          };
+
+          _polygonEntity.polyline.positions = new Cesium.CallbackProperty(function () {
+            return positions;
+          }, false);
+
+          _polygonEntity.polygon = {
+            hierarchy: new Cesium.CallbackProperty(function () {
+              return polygon;
+            }, false),
+            material: Cesium.Color.fromCssColorString('#7FFF00').withAlpha(0.4),
+            opacity: 0.4,
+            outline: true,
+            outlineColor: Cesium.Color.fromCssColorString('#7FFF00')
+          };
+          _polygonEntity.clampToS3M = true;
+
+          polyObj = _drawLayer.entities.add(_polygonEntity);
+        }
+
+        function _addInfoPoint(position) {
+          positions.push(positions[0]);
+          analysisPositions = positions;
+          startAnalysis();
+        }
+      }
+    }
+
+    function pickPosition(position) {
+      var ray = viewer.camera.getPickRay(position);
+      return viewer.scene.globe.pick(ray, viewer.scene);
+    }
+
+    function m_start() {
+      document.body.style.cursor = 'crosshair';
+      removeHandlers();
+      showTooltip(); // 显示tooltip提示
+    }
+
+    function m_end() {
+      document.body.style.cursor = 'default';
+      removeHandlers();
+      hideTooltip(); // 隐藏tooltip提示
+    }
+
+    function removeHandlers() {
+      _handlers && _handlers.destroy();
+      _handlers = null;
+    }
+
+    function isNearPoint(movement) {
+      let times = new Date().getTime() - (_last_clickTime || 0);
+      if (_last_clickTime && times < 200) {
+        // console.log('屏蔽了单击时间很近的点')
+        return true;
+      }
+      _last_clickTime = new Date().getTime();
+
+      if (_last_clickPositionX && Math.abs(_last_clickPositionX - movement.x) < 10 && Math.abs(_last_clickPositionY - movement.y) < 10) {
+        // console.log('屏蔽了单击像素很近的点')
+        return true;
+      }
+      _last_clickPositionX = movement.x;
+      _last_clickPositionY = movement.y;
+      return false;
+    }
+
+    function setTooltipPos(movement) {
+      tooltip.style.left = movement.endPosition.x + 5 + 'px';
+      tooltip.style.top = movement.endPosition.y - 28 + 'px';
+    }
+
+    function showTooltip() {
+      tooltip.style.display = 'block';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    // 绘制结束回调
+    function startAnalysis(options = {}) {
+      removeHandlers();
+      hideTooltip();
+
+      calcHeight((highest, lowest) => {
+        $('.input1')[0].value = lowest;
+        $('.input2')[0].value = highest;
+        $('.input3')[0].value = 0.1;
+      });
+    }
+
+    // 计算高度
+    function calcHeight(callback) {
+      let cartoList = [];
+      analysisPositions.forEach(item => {
+        let point = Cesium.Cartographic.fromCartesian(item);
+        cartoList.push(new Cesium.Cartographic(point.longitude, point.latitude));
+      });
+
+      const promise = Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, cartoList);
+      Promise.resolve(promise).then(updatedPositions => {
+        let highest = 0; // 最高
+        let lowest = 8888; // 最低
+        for (let k = 0, len = updatedPositions.length; k < len; k++) {
+          let point = updatedPositions[k];
+          if (point.height > highest) {
+            highest = point.height.toFixed(3) * 1;
+          }
+          if (point.height < lowest) {
+            lowest = point.height.toFixed(3) * 1;
+          }
+        }
+
+        callback && callback(highest, lowest);
+      });
+    }
+
+    // 淹没分析
+    function analysis() {
+      remove();
+
+      if (!analysisPositions.length) return;
+
+      var lowest = Number($('.input1')[0].value);
+
+      var polygonInstance = new Cesium.GeometryInstance({
+        geometry: Cesium.PolygonGeometry.fromPositions({
+          positions: analysisPositions,
+          height: lowest - 3000,
+          extrudedHeight: lowest,
+          vertexFormat: Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT
+        }),
+        attributes: {
+          color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.fromCssColorString('#ff0000').withAlpha(0.5))
+        }
+      });
+
+      flowWaterPrimitive = new Cesium.Primitive({
+        geometryInstances: [polygonInstance],
+        undisplayable: true,
+        appearance: new Cesium.EllipsoidSurfaceAppearance({
+          material: Cesium.Material.fromType('FlowWater', {
+            waveImage: '../../img/water.jpg'
+          })
+        })
+      });
+
+      viewer.scene.primitives.add(flowWaterPrimitive);
+
+      var topHeight = Number($('.input1')[0].value);
+      var waterHeight = topHeight;
+      var targetHeight = Number($('.input2')[0].value);
+      var steep = Number($('.input3')[0].value);
+      timer = setInterval(() => {
+        if (waterHeight < targetHeight) {
+          waterHeight += steep;
+          if (waterHeight > targetHeight) {
+            waterHeight = targetHeight;
+          }
+          updateHeight(flowWaterPrimitive, waterHeight - topHeight);
+        } else {
+          clearInterval(timer);
+        }
+      }, 100);
+    }
+
+    function updateHeight(waterPrimitive, offsetHeight) {
+      const boundingSphere = waterPrimitive._boundingSpheres[0];
+      if (!boundingSphere) {
+        return;
+      }
+
+      let m = Cesium.Transforms.eastNorthUpToFixedFrame(boundingSphere.center);
+      let inverse = Cesium.Matrix4.inverse(m, new Cesium.Matrix4());
+
+      let mScale = Cesium.Matrix4.fromTranslation(new Cesium.Cartesian3(1.0, 1.0, offsetHeight));
+      let tt = Cesium.Matrix4.multiply(mScale, inverse, new Cesium.Matrix4());
+      waterPrimitive.modelMatrix = Cesium.Matrix4.multiply(m, tt, new Cesium.Matrix4());
+    }
+
+    // 清除
+    function remove() {
+      if (flowWaterPrimitive) {
+        viewer.scene.primitives.remove(flowWaterPrimitive);
+        flowWaterPrimitive = null;
+      }
+
+      if (timer) {
+        clearInterval(timer);
+      }
+
+      removeHandlers();
+      _drawLayer.entities.removeAll();
+      hideTooltip();
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+      createMeasure();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

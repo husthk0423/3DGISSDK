@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+    <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+    <title>3dtiles叠加路网服务</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/Cesium/Cesium.js"></script>
+
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<div class="tab-list">
+  <div class="btn-content">
+    <button type="button" class="btn btn-outline-light btn-item" onclick="burrow()">挖洞</button>
+    <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">移除</button>
+  </div>
+</div>
+
+<script >
+    var viewer;
+    var tile3d;
+    var terrainClip;
+    var terrainObj;
+    var fps = '60FPS'
+    function startup(Cesium) {
+		createMap();
+    }
+
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+      });
+
+
+    function createMap() {
+        viewer  = new Cesium.Viewer('cesiumContainer',{
+          terrainProvider: cesiumTerrainProvider,
+            selectionIndicator: false,
+            useBrowserRecommendedResolution:false,
+            animation: false,  //是否显示动画控件
+            baseLayerPicker: false, //是否显示图层选择控件
+            geocoder: false, //是否显示地名查找控件
+            timeline: false, //是否显示时间线控件
+            sceneModePicker: true, //是否显示投影方式控件
+            navigationHelpButton: false, //是否显示帮助信息控件
+            infoBox: false,  //是否显示点击要素之后显示的信息
+            imageryProvider:false,
+            fullscreenButton: true});
+
+        viewer.scene.globe.preloadAncestors = false;
+
+		    viewer.scene.primitives.destroyPrimitives = false;
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        var imageryLayers = viewer.imageryLayers;
+
+        Cesium.viewer = viewer;
+
+
+        // //天地图影像图层
+        var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+            url: "http://t0.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+    "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+    "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+            layer: "tdtImg_c",
+            style: "default",
+            format: "tiles",
+            tileMatrixSetID: "c",
+            subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+            tilingScheme: new Cesium.GeographicTilingScheme(),
+            tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+            maximumLevel: 18,
+        }));
+        viewer.imageryLayers.add(tiandituImageLayer);
+
+
+        viewer.camera.setView({
+            destination: Cesium.Cartesian3.fromDegrees(114.28864354651377,35.70341169034039, 1194.641), //设置位置
+            orientation: {
+                heading: Cesium.Math.toRadians(2.4407543),
+                pitch: Cesium.Math.toRadians(-30.30518),
+                roll: 0
+            }
+        });
+
+    }
+    function burrow(){
+      var arr = [
+        [114.28613769634772,35.75010248034698],
+        [114.30744442257307,35.75027047071116],
+        [114.3075226890956,35.732181759448025],
+        [114.28597952354103,35.73234818889234],
+        [114.28613769634772,35.75010248034698]
+      ]
+      var position =[] 
+      for(var i=0;i<arr.length;i++){
+        position.push(Cesium.Cartesian3.fromDegrees(arr[i][0], arr[i][1], 0))
+      }
+
+      terrainClip = new Cesium.TerrainClip(viewer, {
+        image: "../data/img/1.jpg",
+        imageBottom: "../data/img/a.jpg",
+        splitNum: 80 // 井边界插值数
+      });
+
+       terrainObj = terrainClip.addPolygon(position, { diffHeight:200 });
+      
+    }
+    function remove(){
+      if (terrainObj) {
+        terrainClip.removePolygon(terrainObj)
+        terrainObj = null
+      }
+    }
+
+    if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+    }
+</script>
+</body>
+
+</html>

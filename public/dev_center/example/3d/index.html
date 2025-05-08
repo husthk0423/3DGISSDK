@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>开发中心</title>
+  <link rel="stylesheet" href="../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../css/pageContent.css">
+  <script src="../libs/bootstrap.min.js"></script>
+  <script src="../libs/js.tree.common.js"></script>
+</head>
+
+<body>
+  <div class="page-content">
+    <div class="left-content">
+      <div class="search-box">
+        <input class="form-control box-input" id="exampleFormControlInput1" placeholder="请输入搜索关键词"
+          oninput="changeInput()"></input>
+
+        <div class="box-clear" onclick="clearSearch()">
+          <img src="../img/3d/left/关闭.png" alt="">
+        </div>
+
+        <div class="box-icon" onclick="searchTree()">
+          <img src="../img/3d/left/搜索.png" alt="">
+        </div>
+      </div>
+
+      <div class="tree-box">
+        <div class="box-title">
+          <span>三维地图示例</span>
+        </div>
+
+        <div class="box-node"></div>
+      </div>
+    </div>
+
+    <div class="right-content">
+      <div class="content-title">
+        <span>三维地图示例</span>
+      </div>
+
+      <div class="content-card"></div>
+    </div>
+  </div>
+
+  <div class="col-md-3 warning-box">
+    <div class="alert alert-warning">
+      <span>搜索内容不可为空</span>
+    </div>
+  </div>
+</body>
+
+<script src="../libs/jquery-3.1.1.min.js"></script>
+<script src="./catalogConfig.js"></script>
+
+<script>
+  let isSearch = false;
+  catalog.forEach((item, index) => {
+    item.parentId = null;
+    item.id = `${index + 1}`;
+    item.children.forEach((option, key) => {
+      option.parentId = `${index + 1}`;
+      option.id = `${index + 1}-${key + 1}`;
+    });
+  });
+  let origTreeData = catalog;
+  createEle(catalog);
+
+  function createEle(data) {
+    $('.box-node').empty();
+    $('.content-card').empty();
+
+    data.forEach((item, index) => {
+      let treeNode = $(`
+        <div class="node-item">
+          <div class="parent-node">
+            <div class="left-box">
+              <img src="../img/3d/left/tree/${item.label}.png" alt="">
+              <span>${item.label}</span>
+              <span>(${item.children.length})</span>
+            </div>
+          
+            <div class="right-box">
+              <img style="transform: rotate(0deg);" src="../img/3d/left/tree/下拉.png" alt="">
+            </div>
+          </div>
+        
+          <div class="child-node-list"></div>
+        </div>`);
+      let cardBox = $(`
+        <div class="card-box">
+          <div class="card-title">
+            <div class="title-content">
+              <img src="../img/3d/left/tree/${item.label}.png" alt="">
+              <span>${item.label}</span>
+            </div>
+          </div>
+          <div class="card-content"></div>
+        </div>`);
+
+      let childNodeList = [];
+      let cardList = [];
+      item.children.forEach(option => {
+        let childNodeItemEle = $(`<div class="child-node-item"><span>${option.label}</span></div>`);
+        let cardItemEle = $(`<div class="card-item"><div class="item-img"><img src="../img/3d/previewCard/${option.label}.png" alt="" alt=""></div><div class="item-name"><div class="name-icon"></div><span>${option.label}</span></div></div>`);
+        childNodeItemEle[0].attribute = option;
+        cardItemEle[0].attribute = option;
+        childNodeList.push(childNodeItemEle);
+        cardList.push(cardItemEle);
+      });
+
+      $(treeNode[0].children[1]).append(...childNodeList);
+      $('.box-node').append(treeNode);
+      $(cardBox[0].children[1]).append(...cardList);
+      $('.content-card').append(cardBox);
+
+      if (index == data.length - 1) addEvent();
+    });
+  }
+
+  function addEvent() {
+    // 一级节点
+    let parentNodeEles = $('.parent-node');
+    parentNodeEles.click(function () {
+      let _this = $(this);
+      parentNodeEles.each(function () {
+        let arrows = $($(this)[0].children[1].children[0]);
+        let childNodeList = $(this).siblings();
+
+        if (_this.is($(this))) {
+          if (arrows[0].style.transform == 'rotate(0deg)') {
+            arrows[0].style.transform = 'rotate(-180deg)';
+            childNodeList.css({ 'display': 'block' });
+          } else if (arrows[0].style.transform == 'rotate(-180deg)') {
+            arrows[0].style.transform = 'rotate(0deg)';
+            childNodeList.css({ 'display': 'none' });
+          }
+        } else {
+          arrows[0].style.transform = 'rotate(0deg)';
+          childNodeList.css({ 'display': 'none' });
+        }
+      });
+
+      const innerText = _this[0].children[0].children[1].innerText;
+      const tgtEle = getTgtEle({ innerText });
+      if (tgtEle) {
+        const { offsetTop, clientHeight } = tgtEle;
+        const y = offsetTop - (clientHeight * 4);
+        $('.content-card')[0].scrollTo(0, y);
+      }
+    });
+
+    // 子节点
+    let childNodeItemEles = $('.child-node-item');
+    childNodeItemEles.click(function () {
+      openExamplePage($(this));
+    });
+
+    childNodeItemEles.hover(
+      function () {
+        const tgtEle = getTgaCardEle($(this));
+        tgtEle && $(tgtEle).addClass('card-item-hover');
+      },
+      function () {
+        const tgtEle = getTgaCardEle($(this));
+        tgtEle && $(tgtEle).removeClass('card-item-hover');
+      });
+
+    function getTgaCardEle(_this) {
+      let tgtEle = getTgtEle({
+        cssName: '.card-item',
+        innerText: _this[0].innerText
+      });
+      return tgtEle;
+    }
+
+    // 卡片
+    let cardItemEles = $('.card-item');
+    cardItemEles.click(function () {
+      openExamplePage($(this));
+    });
+
+    function openExamplePage(_this) {
+      const { attribute } = _this[0];
+      if (attribute && attribute.label) {
+        window.open(`./html/codeTemplate.html?${attribute.label}.html`);
+      }
+    }
+  }
+
+  function getTgtEle(option) {
+    const cssName = option.cssName || '.title-content';
+    const innerText = option.innerText;
+    let tgtEle = null;
+    for (let i = 0; i < $(cssName).length; i++) {
+      const item = $(cssName)[i];
+      if (item.innerText == innerText) {
+        tgtEle = item;
+        break;
+      }
+    }
+    return tgtEle;
+  }
+
+  // 搜索树
+  function searchTree() {
+    const value = $('.box-input')[0].value.replace(/\s*/g, "");
+    const warningHint = (innerText = '搜索内容不可为空') => {
+      let warningEle = $('.warning-box')[0];
+      console.dir(warningEle);
+      warningEle.children[0].innerText = innerText;
+      let anim = warningEle.getAnimations()[0];
+      warningEle.animate([
+        {
+          opacity: 1,
+          zIndex: 10,
+          transform: 'translate(0, 90%)'
+        },
+        {
+          transform: 'none'
+        },
+        {
+          opacity: 0,
+          zIndex: 1,
+        }], 3000);
+    };
+
+    if (!value) return warningHint();
+
+    // 将树结构打平
+    let nodeMap = {};
+    each(catalog, (node) => {
+      nodeMap[node.id] = node;
+    });
+
+    // 查询节点
+    let includesNode = [];
+    for (const key in nodeMap) {
+      const node = nodeMap[key];
+      if (node.label.includes(value)) {
+        includesNode.push(node);
+      }
+    }
+
+    if (includesNode.length) {
+      // 查找是否有父节点
+      includesNode.forEach(item => {
+        let parent = null;
+        let parentId = item.parentId;
+        while (true) {
+          parent = nodeMap[parentId];
+          if (parent == null || includesNode.find(e => { return e.label == parent.label; })) break;
+          includesNode.push(parent);
+          parentId = parent['parentId'];
+        }
+      });
+
+      // 转回树结构
+      const filterTreeData = toTree(includesNode, {
+        idKey: 'id',
+        parentKey: 'parentId',
+        childrenKey: 'children',
+      });
+
+      isSearch = true;
+      createEle(filterTreeData);
+    } else {
+      warningHint('搜索结果为空');
+    }
+  }
+
+  $('.box-input').bind('keydown', function (event) {
+    if (event.keyCode == "13") {
+      searchTree();
+    }
+  });
+
+  // 清空搜索
+  function clearSearch() {
+    if (isSearch) {
+      isSearch = false;
+      createEle(origTreeData);
+    }
+  }
+
+  function changeInput() {
+    if (isSearch) {
+      const value = $('.box-input')[0].value.replace(/\s*/g, "");
+      if (!value) {
+        isSearch = false;
+        createEle(origTreeData);
+      }
+    }
+  }
+</script>
+
+</html>

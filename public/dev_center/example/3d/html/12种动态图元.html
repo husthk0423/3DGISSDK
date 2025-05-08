@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+    <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+    <title>12种动态图元</title>
+    
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/dat.gui.min.js"></script>
+
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<script >
+    var viewer;
+    var magicBoxs = [];
+    var effectPrimitive ;
+
+    const planeInstance = new Cesium.GeometryInstance({
+        geometry: new Cesium.PlaneGeometry({
+            vertexFormat: Cesium.VertexFormat.DEFAULT
+        })
+    });
+
+    function startup(Cesium) {
+		createMap();
+    }
+
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+      });
+
+
+    function createMap() {
+        viewer  = new Cesium.Viewer('cesiumContainer',{
+          terrainProvider: cesiumTerrainProvider,
+            selectionIndicator: false,
+            useBrowserRecommendedResolution:false,
+            animation: false,  //是否显示动画控件
+            baseLayerPicker: false, //是否显示图层选择控件
+            geocoder: false, //是否显示地名查找控件
+            timeline: false, //是否显示时间线控件
+            sceneModePicker: true, //是否显示投影方式控件
+            navigationHelpButton: false, //是否显示帮助信息控件
+            infoBox: false,  //是否显示点击要素之后显示的信息
+            imageryProvider:false,
+            fullscreenButton: true});
+
+        viewer.scene.globe.preloadAncestors = false;
+
+		    viewer.scene.primitives.destroyPrimitives = false;
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        var imageryLayers = viewer.imageryLayers;
+
+        viewer.postProcessStages.fxaa.enabled = true;
+        viewer.scene.debugShowFramesPerSecond = true; // 帧率
+        viewer.scene.globe.enableLighting = true;
+
+        Cesium.viewer = viewer;
+
+       
+        // //天地图影像图层
+        var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+            url: "http://t0.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+      "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+      "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+              layer: "tdtImg_c",
+              style: "default",
+              format: "tiles",
+              tileMatrixSetID: "c",
+              subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+              tilingScheme: new Cesium.GeographicTilingScheme(),
+              tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+              maximumLevel: 18,
+          }));
+          viewer.imageryLayers.add(tiandituImageLayer);
+
+          viewer.camera.setView({
+            destination: { x: -2327247.038981403, y: 5390425.690024069, z: 2487093.3146744343 },
+            orientation: {
+                heading: Cesium.Math.toRadians(293.6635524369704),
+                pitch: Cesium.Math.toRadians(-22.617957999782014),
+                roll: Cesium.Math.toRadians(0.0013787893420239103)
+            }
+        })
+        
+        let effectPrimitive = viewer.scene.primitives.add(new Cesium.EffectPrimitive({
+              geometryInstances: planeInstance,
+              appearance: new Cesium.MaterialAppearance({
+                  material: Cesium.Material.fromType(Cesium.Material.GlowPyramidEffect3D)
+              }),
+              position:  [113.3204, 23.116, 200],
+              scale: [500, 500, 1]
+          }));
+
+        let gui = new dat.GUI();
+          gui.width = 350;
+          let materialGUI = gui.addFolder('材质包');
+          let materialOptions = {
+              materials: "FlowWallMaterialProperty",
+              effec3DtMaterials: "GlowPyramidEffect3D",
+              color: "#ffffff",
+              speed: 60,
+              glow: 1.0,
+          }
+
+          materialGUI.add(materialOptions, 'effec3DtMaterials', [
+              'GlowPyramidEffect3D',
+              'MagicBallEffect3D',
+              'RealFlameEffect3D',
+              'MagicBoxEffect3D',
+              'FlameCloudEffect3D',
+              'StellarChainEffect3D',
+              'WavePetalsEffect3D',
+              'FireWorksEffect3D',
+              'GlowBoxEffect3D',
+              'GlowDiamondEffect3D',
+              'FireExplosionEffect3D',
+              'SunEntityEffect3D',
+              'NeonBallEffect3D',
+              'GlowBox2Effect3D',
+          ]).name("3D特效").onChange(function (value) {
+              // 3d视觉特效 时钟面朝相机
+              effectPrimitive && viewer.scene.primitives.remove(effectPrimitive)
+              
+              effectPrimitive = viewer.scene.primitives.add(new Cesium.EffectPrimitive({
+                  geometryInstances: planeInstance,
+                  appearance: new Cesium.MaterialAppearance({
+                      material: Cesium.Material.fromType(Cesium.Material[value])
+                  }),
+                  position:  [113.3204, 23.116, 200],
+                  scale: [500, 500, 1]
+              }));
+          })
+          materialGUI.addColor(materialOptions, 'color').name("颜色").onChange(function (value) {
+
+              effectPrimitive && (effectPrimitive.appearance.material.uniforms.u_color = Cesium.Color.fromCssColorString(value))
+          })
+          materialGUI.add(materialOptions, 'speed', 30, 300.0, 0.1).name("运动周期").onChange(function (value) {
+            
+              effectPrimitive && (effectPrimitive.appearance.material.uniforms.u_speed = value)
+          })
+          materialGUI.add(materialOptions, 'glow', 0.01, 3.0, 0.01).name("发光").onChange(function (value) {
+    
+              effectPrimitive && (effectPrimitive.appearance.material.uniforms.u_glow = value)
+          })
+          materialGUI.open()
+
+          let magicBox = [
+                { position: [113.33349112149335, 23.0965177997892, 200], color: Cesium.Color.ORANGE, userData: {} }
+          ]
+
+          magicBox.forEach(box => {
+            magicBoxs.push(createMagicBoxEffect({
+                userData: {},
+                color: box.color,
+                speed: 60.0,
+                glow: 1.4,
+                height: 200,
+                position: box.position,
+                scale: [200, 200, 200],
+                rotation: [90.0, 0.0, 0.0],
+            }))
+          })
+
+    }
+
+    function createMagicBoxEffect (options = {}) {
+        return viewer.scene.primitives.add(new Cesium.EffectPrimitive({
+            geometryInstances: planeInstance,
+            appearance: new Cesium.MaterialAppearance({
+                material: new Cesium.Material({
+                    fabric: {
+                        type: Cesium.Material.MagicBoxEffect3D,
+                        uniforms: {
+                            u_color: options.color || new Cesium.Color(1.0, 1.0, 0.3),
+                            u_speed: options.speed || 60.0,
+                            u_glow: options.glow || 1.0,
+                            u_image: Cesium.buildModuleUrl('Assets/Image/noise.png'),
+                        }
+                    }
+                })
+
+            }),
+            asynchronous: false,
+            position: options.position,
+            scale: options.scale
+        }));
+    }
+
+
+    if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+    }
+</script>
+</body>
+
+</html>

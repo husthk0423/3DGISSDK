@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>水面倒影</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <div class="tab-list">
+    <div class="btn-content">
+      <button type="button" class="btn btn-outline-light btn-item" onclick="setBackColor()">切换背景</button>
+      <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">清除</button>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+  var ReflectWater;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      fullscreenButton: false, // 是否显示全屏按钮控件
+      vrButton: false, // 是否显示vr按钮控件
+      geocoder: false, // 是否显示地名查找控件
+      homeButton: false, // 是否显示主页按钮控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      sceneModePicker: false, // 是否显示投影方式控件
+      selectionIndicator: false, // 是否获取选择周指示器
+      timeline: false, // 是否显示时间线控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      // contextOptions:{
+      //   requestWebgl2:true
+      // },
+      // msaaSamples:4,
+      imageryProvider: false, //不加载cesium提供的图层
+    });
+    viewer.scene.globe.depthTestAgainstTerrain = true; // 深度测试
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#99ccff");
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.13883434865794, 35.71760239744203, 38.731949407187514),
+      orientation: {
+        heading: Cesium.Math.toRadians(324.34066436753835),
+        pitch: Cesium.Math.toRadians(-22.07927077880571),
+        roll: Cesium.Math.toRadians(0.00001572593370191734)
+      }
+    });
+
+    // 添加模型
+    let position = Cesium.Cartesian3.fromDegrees(114.13670281501463, 35.719012432291045, -95);
+    let headingPitchRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(30), Cesium.Math.toRadians(0), Cesium.Math.toRadians(0));
+    let modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(position, headingPitchRoll, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, new Cesium.Matrix4());
+    viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      url: '../data/gltf/城市4.glb',
+      modelMatrix: modelMatrix,
+      scale: 1,
+    }));
+  }
+
+  // 添加水面
+  function addWater() {
+    ReflectWater = new Cesium.ReflectWater(viewer, {
+      positions: waterPosition1,
+      height: 1,
+      normalMapUrl: '../../img/water.jpg',
+      waterColor: '#99ccff',
+      gapFrame: 2,
+      distortionScale: 0.2
+    });
+  }
+
+  // 切换背景
+  function setBackColor() {
+    viewer.scene.skyBox.show = false;
+    viewer.scene.skyAtmosphere.show = false;
+    viewer.scene.backgroundColor = Cesium.Color.CYAN;
+    viewer.scene.sun.show = false;
+    viewer.scene.moon.show = false;
+  }
+
+  // 清除
+  function remove() {
+    viewer.scene.skyBox.show = true;
+    viewer.scene.skyAtmosphere.show = true;
+    viewer.scene.backgroundColor = Cesium.Color.BLACK;
+    viewer.scene.sun.show = true;
+    viewer.scene.moon.show = true;
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+    addWater();
+  }
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

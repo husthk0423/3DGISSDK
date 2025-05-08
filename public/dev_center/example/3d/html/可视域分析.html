@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>可视域分析</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/slider.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style>
+      .control-body {
+        margin-bottom: 16px;
+      }
+
+      .control-item span {
+        width: 90px !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>水平张角（度）</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="120" step="0.1" data-bind="value: horizontalAngle, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>120)value=120" data-bind="value: horizontalAngle, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>垂直张角（度）</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="90" step="0.1" data-bind="value: verticalAngle, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>90)value=90" data-bind="value: verticalAngle, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>投射距离（米）</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="1000" step="0.01" data-bind="value: distance, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>1000)value=1000" data-bind="value: distance, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>透明度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.1" data-bind="value: alpha, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: alpha, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>视锥框线</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: showFrustum" />
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-content">
+        <button type="button" class="btn btn-outline-light btn-item" onclick="viewShedAnalysis()">可视域分析</button>
+        <button type="button" class="btn btn-outline-light btn-item" onclick="remove()">移除</button>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var _handlers;
+    var viewShed;
+    var tooltip;
+    var viewModel = {
+      horizontalAngle: 120,
+      verticalAngle: 90,
+      distance: 100,
+      alpha: 0.5,
+      showFrustum: true,
+      enabled: true
+    };
+
+    var viewModelMap = {
+      horizontalAngle: () => {
+        viewShed && (viewShed.horizontalAngle = Number(viewModel.horizontalAngle));
+      },
+      verticalAngle: () => {
+        viewShed && (viewShed.verticalAngle = Number(viewModel.verticalAngle));
+      },
+      distance: () => {
+        viewShed && (viewShed.distance = Number(viewModel.distance));
+      },
+      alpha: () => {
+        viewShed && (viewShed.alpha = Number(viewModel.alpha));
+      },
+      showFrustum: () => {
+        viewShed && (viewShed.showFrustum = Boolean(viewModel.showFrustum));
+      }
+    };
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        selectionIndicator: false, // 是否获取选择周指示器
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: true, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        imageryProvider: false, // 不加载cesium提供的图层
+        infoBox: false // 是否显示点击要素之后显示的信息
+      });
+
+      const tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      const tile3d = new Cesium.Cesium3DTileset({
+        maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+        maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+        useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+        skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+        skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+        workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+        // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+        url: modelConfig.cyy3dtilesUrl.tilesetUrl
+      });
+      tile3d.readyPromise.then(tileset => {
+        var boundingSphere = tileset.boundingSphere;
+        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+        var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -80);
+        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+        tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+        viewer.scene.primitives.add(tileset);
+      });
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.31164014349177, 35.72015703327007, 68.21301110157393),
+        orientation: {
+          heading: Cesium.Math.toRadians(104.57879277053799),
+          pitch: Cesium.Math.toRadians(-15.385872846722735),
+          roll: Cesium.Math.toRadians(0)
+        }
+      });
+
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(viewModelMap[name]);
+        }
+      }
+    }
+
+    function createAnalyze() {
+      tooltip = document.createElement('DIV');
+      document.body.appendChild(tooltip);
+      tooltip.style = 'position: absolute;background: rgba(0,0,0,0.5); z-index: 999;line-height: 18px;pointer-events: none;';
+      tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击选择起点</span>';
+      showTooltip();
+    }
+
+    // 可视域分析
+    function viewShedAnalysis() {
+      if (viewShed) {
+        remove();
+      }
+
+      viewShed = new Cesium.ViewShedAnalysis(viewer, viewModel);
+
+      // 显示提示文字
+      m_start();
+      _handlers = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      var positions = [];
+      var isEndClick = true;
+
+      _handlers.setInputAction(event => {
+        var cartesian = viewer.scene.pickPosition(event.position);
+        if (!Cesium.defined(cartesian)) {
+          return;
+        }
+        positions.push(cartesian.clone());
+
+        isEndClick = !isEndClick;
+        if (isEndClick) {
+          m_end();
+        } else {
+          tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击选择终点</span>';
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+      _handlers.setInputAction(movement => {
+        tooltip.style.left = movement.endPosition.x + 5 + 'px';
+        tooltip.style.top = movement.endPosition.y - 28 + 'px';
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }
+
+    // 清除
+    function remove() {
+      if (viewShed) {
+        viewShed.remove();
+        viewShed = null;
+      }
+    }
+
+    // 显示tooltip提示
+    function m_start() {
+      document.body.style.cursor = 'crosshair';
+      remove_handlers();
+      showTooltip();
+    }
+
+    // 隐藏tooltip提示
+    function m_end() {
+      document.body.style.cursor = 'default';
+      remove_handlers();
+      hideTooltip();
+    }
+
+    function showTooltip() {
+      tooltip.style.display = 'block';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    function remove_handlers() {
+      _handlers && _handlers.destroy();
+      _handlers = null;
+    }
+
+    function startup(Cesium) {
+      'use strict';
+      createMap();
+      createAnalyze();
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

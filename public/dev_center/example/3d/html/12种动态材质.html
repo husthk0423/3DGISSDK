@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <!-- Use Chrome Frame in IE -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles." />
+    <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles" />
+    <title>12种动态图元</title>
+
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/dat.gui.min.js"></script>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <script>
+      var viewer;
+      var magicBoxs = [];
+      var effectPrimitive;
+
+      var material = new Cesium.FlowWallMaterialProperty();
+
+      function startup(Cesium) {
+        createMap();
+      }
+
+      var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+      });
+
+      function createMap() {
+        viewer = new Cesium.Viewer('cesiumContainer', {
+          terrainProvider: cesiumTerrainProvider,
+          selectionIndicator: false,
+          useBrowserRecommendedResolution: false,
+          animation: false, //是否显示动画控件
+          baseLayerPicker: false, //是否显示图层选择控件
+          geocoder: false, //是否显示地名查找控件
+          timeline: false, //是否显示时间线控件
+          sceneModePicker: true, //是否显示投影方式控件
+          navigationHelpButton: false, //是否显示帮助信息控件
+          infoBox: false, //是否显示点击要素之后显示的信息
+          imageryProvider: false,
+          fullscreenButton: true
+        });
+
+        viewer.scene.globe.preloadAncestors = false;
+
+        viewer.scene.primitives.destroyPrimitives = false;
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        var imageryLayers = viewer.imageryLayers;
+
+        viewer.postProcessStages.fxaa.enabled = true;
+        viewer.scene.debugShowFramesPerSecond = true; // 帧率
+        viewer.scene.globe.enableLighting = true;
+
+        Cesium.viewer = viewer;
+
+        // //天地图影像图层
+        var tiandituImageLayer = new Cesium.ImageryLayer(
+          new Cesium.WebMapTileServiceImageryProvider({
+            url: 'http://t0.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0' + '&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}' + '&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a',
+            layer: 'tdtImg_c',
+            style: 'default',
+            format: 'tiles',
+            tileMatrixSetID: 'c',
+            subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+            tilingScheme: new Cesium.GeographicTilingScheme(),
+            tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+            maximumLevel: 18
+          })
+        );
+        viewer.imageryLayers.add(tiandituImageLayer);
+
+        viewer.camera.setView({
+          destination: { x: -2327247.038981403, y: 5390425.690024069, z: 2487093.3146744343 },
+          orientation: {
+            heading: Cesium.Math.toRadians(293.6635524369704),
+            pitch: Cesium.Math.toRadians(-22.617957999782014),
+            roll: Cesium.Math.toRadians(0.0013787893420239103)
+          }
+        });
+
+        var box = viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(113.32239112149335, 23.1065177997892, 250),
+          box: {
+            dimensions: new Cesium.Cartesian3(500.0, 500.0, 500.0),
+            material: material
+          }
+        });
+
+        var box1 = viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(113.32239112149335, 23.0965177997892, 200),
+          box: {
+            dimensions: new Cesium.Cartesian3(500.0, 500.0, 500.0),
+            material: new Cesium.FlowDigitalMaterialProperty()
+          }
+        });
+
+        let gui = new dat.GUI();
+        gui.width = 350;
+        let materialGUI = gui.addFolder('材质包');
+        let materialOptions = {
+          materials: 'FlowWallMaterialProperty',
+          effec3DtMaterials: 'GlowPyramidEffect3D',
+          color: '#ffffff',
+          speed: 60,
+          glow: 1.0
+        };
+
+        materialGUI
+          .add(materialOptions, 'materials', ['FlowDigitalMaterialProperty', 'FlowWallMaterialProperty', 'RadarScanMaterialProperty', 'RadarWaveMaterialProperty', 'RadarSpreadMaterialProperty', 'FlameRadiationMaterialProperty', 'NeonLightMaterialProperty', 'WaveShieldMaterialProperty', 'DynamicLineMaterialProperty', 'WarpSpeedMaterialProperty', 'FireSpeedMaterialProperty', 'GlowCircleMaterialProperty', 'BloomHaloMaterialProperty', 'AimedCircleMaterialProperty'])
+          .name('材质包')
+          .onChange(function (value) {
+            material = new Custom[value]();
+            box.box.material = material;
+          });
+        materialGUI
+          .addColor(materialOptions, 'color')
+          .name('颜色')
+          .onChange(function (value) {
+            box.box.material._color = Cesium.Color.fromCssColorString(value);
+          });
+        materialGUI
+          .add(materialOptions, 'speed', 30, 300.0, 0.1)
+          .name('运动周期')
+          .onChange(function (value) {
+            box.box.material._speed = value;
+          });
+        materialGUI
+          .add(materialOptions, 'glow', 0.01, 3.0, 0.01)
+          .name('发光')
+          .onChange(function (value) {
+            box.box.material._glow = value;
+          });
+        materialGUI.open();
+      }
+
+      if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+      }
+    </script>
+  </body>
+</html>

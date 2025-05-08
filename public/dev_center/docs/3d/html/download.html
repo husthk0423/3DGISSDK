@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" style="width:100%;height: 100%;margin: 0px;">
+<head>
+  <meta charset="UTF-8">
+  <title>开发中心</title>
+  <meta name="description" content="Description">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="/css/download.css">
+  <script src="/lib/jquery/jquery-1.11.1.js"></script>
+  <script src="/js/unslider.min.js"></script>
+</head>
+<body  topmargin='0' leftmargin='0' style="overflow-x: hidden;">
+	<div class="download-content">
+		<div class="d-title">
+			相关下载
+		</div>
+		<div class="d-desc1">
+			<div class="dd-title">SDK 使用方式介绍</div>
+			<div class="dd-desc-content">
+				<div class="dd-content">
+					<p>二维矢量瓦片地图API是一套 JavaScript 语言开发的地图应用编程接口，兼容多种系统平台，移动端、PC端一体化设计。 JS API 提供了满足绝大多数开发者对底图加载、注记加载、要素拾取、要素过滤、图层控制、注记避让及图形绘制的需求，同时也提供了矢量瓦片地图服务、矢量瓦片注记服务、获取图层列表服务、图元拾取高亮服务和动态图例信息获取等众多开放服务接口。</p>
+					<p>二维矢量瓦片地图SDK for Leaflet （最新2.1.6）API套插件，可帮助您在网站中构建功能丰富、可交互、可定制、可查询等高交互的地图应用。支持PC端、移动端、基于浏览器的底图应用开发，且支持HTML5 特性地图开发。支持HTTP1.0、HTTP2.0和HTTPS等多种超文本传输协议。</p>
+					<p> 二维矢量瓦片地图API拥有完善的文档体系，系统学习地图和服务接口调用请前往开发中心，快速了解 JS API 的全部核心能力请参考示例代码，使用遇到问题可查看常见问题。</p>
+				</div>
+				<div class="dd-button">
+					<!--<div style="width: 70px;height: 40px; float: left ;padding-top:15px" ><p2 style="font-size: larger;">leaflet :</p2></div>-->
+					<!--<input class="dd-text" id="text" type="text" value="http://localhost:63342/docs/openlayers/js/leaflet/leaflet.js" readonly="readonly">-->
+					<span style="width: 107px;height: 40px; font-size: larger;">leaflet   &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp: &nbsp&nbsp</span>
+					<span style="width: 380px;height: 40px" id="leafletSpan"></span>
+					<a href="#" style="margin-left: 40px" onclick=copy()>下载</a>
+				</div>
+				<!-- <div class="dd-button">
+					<span style="width: 107px;height: 40px; font-size: larger; ">openlayers  &nbsp&nbsp: &nbsp&nbsp</span>
+					<span style="width: 380px;height: 40px" id="openLayersSpan"></span>
+					<a href="#" onclick=copy1()>下载</a>
+				</div> -->
+				<div class="dd-leaft-openlayer">
+					<div class="select">
+						<div class="s-tap active" id="leafletId">SDK for Leaflet</div>
+						<!-- <div class="s-tap "  id="openlayersId" >SDK for Openlayers</div> -->
+					</div>
+					<div class="s-content">
+						<div class="item">
+							<div class="item-title">
+								示例代码
+							</div>
+							<div class="item-icon icon1"  style="background:url('/img/icon_code.png')"></div>
+							<div class="item-button" id="sampleId">立即下载</div>
+						</div>
+						<div class="item">
+							<div class="item-title">
+								开发包
+							</div>
+							<div class="item-icon icon3" style="background:url('/img/icon-develop.png')"></div>
+							<div class="item-button" id="developId">立即下载</div>
+						</div>
+					</div>
+				</div>
+				<!-- <div class="attention">
+					<div class="title"><i></i>注意</div>
+					<div class="content">
+						<p>下载SDK for Leaflet时，注意选择自己需要的版本。</p>
+					</div>
+				</div> -->
+			</div>
+		</div>
+	</div>
+</body>
+
+<script>
+
+	//当前页面的ip
+	var urlIp=window.location.origin;
+	var textLeaflet = urlIp+'/example/js/leaflet/CustomWebSDK.min.js'
+	var textOpenLayers = urlIp+'/example/js/openlayers/CustomWebSDK.min.js	'
+
+    document.getElementById("leafletSpan").innerText=textLeaflet;
+    document.getElementById("openLayersSpan").innerText=textOpenLayers;
+
+    var cpTxt
+
+	function copy() {
+        cpTxt= document.getElementById('leafletSpan').innerHTML;
+		window.open(cpTxt)
+	}
+    function copy1() {
+        cpTxt = document.getElementById('openLayersSpan').innerHTML;
+        window.open(cpTxt)
+    }
+
+	$(function () {
+
+        $(".item-button").on("mouseover",function () {
+           $(".item-button").removeClass("active");
+           $(this).addClass("active")
+        });
+        $(".item-button").on("mouseout",function () {
+            $(".item-button").removeClass("active");
+        });
+
+        $(".s-tap").on("click",function () {
+            $(".s-tap").removeClass("active");
+            $(this).addClass("active")
+        })
+
+        $('#sampleId').on('click', function () {
+            if($('#leafletId').hasClass('active')){
+                var shpurl="/example/download/Leaflet_sample.zip";
+                window.location.href=shpurl;
+            }else if($('#openlayersId').hasClass('active')){
+                var shpurl="/example/download/Openlayers_sample.zip";
+                window.location.href=shpurl;
+            }
+        });
+        $('#developId').on('click', function () {
+            if($('#leafletId').hasClass('active')){
+                var shpurl="/example/download/leaflet_SDK.zip";
+                window.location.href=shpurl;
+            }else if($('#openlayersId').hasClass('active')){
+                var shpurl="/example/download/openlayers_SDK.zip";
+                window.location.href=shpurl;
+            }
+        });
+
+        $(document.body).bind("copy",function(e){
+            var clipboardData = window.clipboardData; //for IE
+            if (!clipboardData) { // for chrome
+                clipboardData = e.originalEvent.clipboardData;
+            }
+            //e.clipboardData.getData('text');//可以获取用户选中复制的数据
+            clipboardData.setData('Text', cpTxt);
+            alert("已复制到剪贴板");
+            return false;//否则设不生效
+        })
+    })
+
+</script>
+</html>

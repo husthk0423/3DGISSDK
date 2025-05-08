@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>雾天</title>
+    <link rel="stylesheet" href="../../libs/Cesium/Widgets/widgets.css" />
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../js/config.js"></script>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>显隐</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: show" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>雾化高度</span>
+          <input type="range" class="form-range" id="customRange" min="1" max="200" step="0.01" data-bind="value: fogHeight2, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<1)value=1;if(value>200)value=200" data-bind="value: fogHeight2, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>透明度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.01" data-bind="value: fogMaxOpacity, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: fogMaxOpacity, valueUpdate: 'input'" />
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+    var viewer, fogEffetc;
+    var viewModel = {
+      show: true,
+      fogDensity: 0.001,
+      fogHeightFalloff: 0.001,
+      fogHeight: 0,
+      fogDensity2: 0.4,
+      fogHeightFalloff2: 0.37,
+      fogHeight2: 22,
+      fogMaxOpacity: 0.9,
+      startDistance: 0,
+      fogCutoffDistance: 1000,
+      fogInscatteringColor: Cesium.Color.fromCssColorString('#9597a0'),
+      directionalInscatteringExponent: 50,
+      directionalInscatteringStartDistance: 0,
+      directionalInscatteringColor: '#ffce64',
+      directionalInscatteringIntensity: 0.5,
+      _mix: 0,
+      _raymarchSteps: 70,
+      _density: 0.0435,
+      _maxDensity: 0.88,
+      _distanceAttenuation: 0.8,
+    };
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: true, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        contextOptions: {
+          requestWebgl2: true,
+        },
+        msaaSamples: 4,
+        imageryProvider: false, //不加载cesium提供的图层
+      });
+      viewer._cesiumWidget._creditContainer.style.display = 'none'; // 去除icon
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.shadows = true;
+      viewer.scene.globe.enableLighting = true;
+      // 启用gbuffer绘制
+      viewer.scene.enableGBuffer = true;
+      viewer.scene._czmRenderGBufferPass = [Cesium.Pass.CESIUM_3D_TILE];
+      viewer.scene._czmGbufferManager.isReady = true;
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#99ccff');
+
+      var tile3d = new Cesium.Cesium3DTileset({
+        maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+        maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+        useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+        skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+        skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+        workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+        // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+        url: modelConfig.cyy3dtilesUrl.tilesetUrl,
+      });
+      tile3d.readyPromise.then(tileset => {
+        var boundingSphere = tileset.boundingSphere;
+        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+        var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -74);
+        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+        tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+        viewer.scene.primitives.add(tileset);
+      });
+
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(114.31219264593341, 35.71755060926135, 88.05421128002119),
+        orientation: {
+          heading: Cesium.Math.toRadians(49.555186525520625),
+          pitch: Cesium.Math.toRadians(-17.80793195015945),
+          roll: Cesium.Math.toRadians(0.000041403443472904995),
+        },
+      });
+
+      //时间管理类，不同的时间，给与太阳不同的光照强度和颜色
+      var timeManager = new Cesium.TimeManager(viewer);
+      var start = Cesium.JulianDate.fromDate(new Date('2024/1/19 7:40:00'));
+      var end = Cesium.JulianDate.fromDate(new Date('2024/1/19 7:40:00'));
+      let clock = viewer.clock;
+      clock.startTime = start;
+      clock.currentTime = start;
+      clock.stopTime = end;
+      clock.clockRange = Cesium.ClockRange.CLAMPED;
+      clock.shouldAnimate = false;
+
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+    }
+
+    // 雾
+    function addFog() {
+      fogEffetc = new Cesium.FogEffect(viewer, viewModel);
+      viewer.scene.primitives.add(fogEffetc);
+    }
+
+    function updatePostProcess() {
+      fogEffetc.show = Boolean(viewModel.show);
+      viewer.shadows = Boolean(viewModel.show);
+      fogEffetc._fogHeight2 = Number(viewModel.fogHeight2);
+      fogEffetc._fogMaxOpacity = Number(viewModel.fogMaxOpacity);
+    }
+
+    // 清除
+    function remove() {}
+
+    function startup() {
+      'use strict';
+      createMap();
+      addFog();
+    }
+
+    if (typeof Cesium != 'undefined') {
+      startup();
+    }
+  </script>
+</html>

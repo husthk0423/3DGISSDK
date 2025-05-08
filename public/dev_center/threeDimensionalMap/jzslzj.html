@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>加载矢量注记</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+		<style>
+			body {margin: 0;padding: 0;}
+			html,body,#map {height: 100%;}
+		</style>
+	</head>
+	<body>
+		<div id='map'></div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				zoom: 14,
+				maxTileCacheSize: 100,
+				bearing: 0,
+				pitch: 0,
+				center: [120.06, 28.69],
+				fontName:'微软雅黑',
+				glyphUrl:'./fonts/{fontstack}/{range}.pbf'
+			});
+			//注记图层
+			var label = new Geoway.LabelLayer(
+				'http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512', {
+					tileSize: 512
+				});
+			map.addLayer(label);
+		</script>
+	</body>
+</html>

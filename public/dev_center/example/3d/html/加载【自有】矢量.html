@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>加载【自有】矢量</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer"></div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false,
+      useBrowserRecommendedResolution: false,
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      imageryProvider: false,
+      fullscreenButton: true,
+    });
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.postProcessStages._fxaa.enabled = true;
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 加载前端 / 后端矢量图层
+    var pieVec = new Cesium.ImageryLayer(
+      new Cesium.WebMapTileServiceImageryProvider({
+        url: layerConfig.azcfw_Vec.layerUrl,
+        layer: "",
+        style: "",
+        format: "",
+        tileMatrixSetID: "",
+        tileWidth: 512,
+        tileHeight: 512,
+        tilingScheme: new Cesium.GeographicTilingScheme(),
+        tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+        maximumLevel: 22,
+      })
+    );
+    viewer.imageryLayers.add(pieVec);
+
+    // 加载前端 / 后端注记图层
+    var pieLabel = new Cesium.ImageryLayer(
+      new Cesium.LabelTileServiceImageryProvider(viewer, {
+        url: layerConfig.azcfw_Vec.labelUrl,
+        tilingScheme: new Cesium.GeographicTilingScheme({
+          numberOfLevelZeroTilesX: 2,
+          numberOfLevelZeroTilesY: 1,
+        }),
+        tileMatrixLabels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+        offsetHeight: 55,
+        maximumLevel: 22,
+        tileWidth: 512,
+        tileHeight: 512,
+        dataType: "binary",
+        needDecode: false,
+        fontName: "微软雅黑",
+        glyphUrl: "../../font/{fontstack}/{range}.pbf",
+        defaultHeight: 63
+      })
+    );
+    viewer.imageryLayers.add(pieLabel);
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.2805980060613, 35.71203173637864, 926.8804505141453), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(18.842903139427378),
+        pitch: Cesium.Math.toRadians(-22.72519720636145),
+        roll: Cesium.Math.toRadians(359.9994027595037)
+      }
+    });
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

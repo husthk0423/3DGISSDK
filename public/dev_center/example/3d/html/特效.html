@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+    <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+    <title>特效</title>
+    
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/dat.gui.min.js"></script>
+
+</head>
+
+<div id="cesiumContainer" class="fullSize"></div>
+
+<script >
+    var viewer;
+    var shields = []; //扩散
+    var radarSpreads =[]  //雷达扫描光圈;
+    let flowWalls = []//科技墙
+    let flameRadiation;
+
+    let shieldScale = .1;
+    let flameRadiationScale = 500;
+
+
+
+    function startup(Cesium) {
+		createMap();
+    }
+
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+      });
+
+
+    function createMap() {
+        viewer  = new Cesium.Viewer('cesiumContainer',{
+          terrainProvider: cesiumTerrainProvider,
+            selectionIndicator: false,
+            useBrowserRecommendedResolution:false,
+            animation: false,  //是否显示动画控件
+            baseLayerPicker: false, //是否显示图层选择控件
+            geocoder: false, //是否显示地名查找控件
+            timeline: false, //是否显示时间线控件
+            sceneModePicker: true, //是否显示投影方式控件
+            navigationHelpButton: false, //是否显示帮助信息控件
+            infoBox: false,  //是否显示点击要素之后显示的信息
+            imageryProvider:false,
+            fullscreenButton: true});
+
+        viewer.scene.globe.preloadAncestors = false;
+
+		    viewer.scene.primitives.destroyPrimitives = false;
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        var imageryLayers = viewer.imageryLayers;
+
+        viewer.postProcessStages.fxaa.enabled = true;
+        viewer.scene.debugShowFramesPerSecond = true; // 帧率
+        viewer.scene.globe.enableLighting = true;
+
+        Cesium.viewer = viewer;
+
+       
+        // //天地图影像图层
+        var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+            url: "http://t0.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+      "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+      "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+              layer: "tdtImg_c",
+              style: "default",
+              format: "tiles",
+              tileMatrixSetID: "c",
+              subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+              tilingScheme: new Cesium.GeographicTilingScheme(),
+              tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+              maximumLevel: 18,
+          }));
+          viewer.imageryLayers.add(tiandituImageLayer);
+
+          viewer.camera.setView({
+            destination: { x: -2327247.038981403, y: 5390425.690024069, z: 2487093.3146744343 },
+            orientation: {
+                heading: Cesium.Math.toRadians(293.6635524369704),
+                pitch: Cesium.Math.toRadians(-22.617957999782014),
+                roll: Cesium.Math.toRadians(0.0013787893420239103)
+            }
+        })
+
+        let shield = [
+            { color: Cesium.Color.AQUA, position: [113.3026407684826, 23.0993525925889, 0], radii: 500 }
+        ]
+
+        let radarScan = [
+            { color: Cesium.Color.AQUA, position: [113.31995192902735, 23.138023974414082, 0], radii: 500 }
+        ]
+
+        let wallHeight = 200;
+          let flowWall = [
+              {
+                  positions: [
+                      113.31585780175851, 23.121936447077758, wallHeight,
+                      113.30975684015496, 23.12248199155505, wallHeight,
+                      113.31016237785354, 23.131776228188137, wallHeight,
+                      113.31357597789115, 23.13043788083209, wallHeight,
+                      113.31581451714521, 23.130038508153305, wallHeight,
+                      113.31585780175851, 23.121936447077758, wallHeight
+                  ],
+                  // color: Cesium.Color.ORANGE,
+                  glow: 1.2
+              }
+          ]
+
+          // 能量盾和扩散
+          shield.forEach(p => {
+
+              let shieldEffect = createShieldEffect({
+                    color: p.color,
+                    position: p.position,
+                    radii: p.radii,
+                    scale: [1, 1, 1]
+                })
+                shields.push(shieldEffect)
+
+                // 雷达扩散
+                radarSpreads.push(createRadarSpreadEffect({
+                    name: "RadarSpreadEffect",
+                    userData: {},
+                    position: Cesium.Cartesian3.fromDegrees(...p.position),
+                    e_semiMajorAxis: 500,
+                    e_semiMinorAxis: 500,
+                    e_outline: false,
+                    speed: 100,
+                    color: Cesium.Color.fromCssColorString("#5d00e3") // Cesium.Color.IVORY,
+                }))
+            })
+          
+            //钟表扫描
+            radarScan.forEach(p => {
+                radarSpreads.push(createRadarScanEffect({
+                    userData: {},
+                    position: Cesium.Cartesian3.fromDegrees(...p.position),
+                    e_semiMajorAxis: 800,
+                    e_semiMinorAxis: 800,
+                    e_outline: false,
+                    speed: 100,
+                    color: Cesium.Color.AQUA // Cesium.Color.IVORY,
+                }))
+            })
+           
+            //圆扩散
+            flameRadiation = createFlameRadiationEffect({
+              name: "flameRadiation",
+              userData: {},
+              color: Cesium.Color.fromCssColorString("#9b08fd"),
+              speed: 200.0,
+              glow: 0.8,
+              radius: 500,
+              position: [113.29047778463153, 23.12554371841036, 0],
+          })
+
+
+          // 科幻墙效果
+            flowWall.forEach(p => {
+              flowWalls.push(
+                  createFlowWallEffect({
+                      positions: p.positions,
+                      color: p.color,
+                      glow: p.glow
+                  })
+              )
+            })
+
+            viewer.scene.preUpdate.addEventListener(() => {
+              shieldScale <= 500 ? shieldScale += 5 : shieldScale = .1;
+              flameRadiationScale <= 2000 ? flameRadiationScale += 15 : flameRadiationScale = 500;
+            })
+          
+          }
+
+          const createRadarSpreadEffect = (options = {}) => {
+              let material = new Cesium.RadarSpreadMaterialProperty(options)
+              return viewer.entities.add({
+                  position: options.position,
+                  ellipse: {
+                      semiMinorAxis: options.e_semiMinorAxis,
+                      semiMajorAxis: options.e_semiMajorAxis,
+                      material: material,
+                  },
+              })
+          }
+          const createRadarScanEffect = (options = {}) => {
+              let material = new Cesium.RadarScanMaterialProperty(options)
+              return viewer.entities.add({
+                  position: options.position,
+                  ellipse: {
+                      semiMinorAxis: options.e_semiMinorAxis,
+                      semiMajorAxis: options.e_semiMajorAxis,
+                      material: material,
+                  },
+              })
+          }
+      
+          const createShieldEffect = (options = {}) => {
+              let material = new Cesium.WaveShieldMaterialProperty(options)
+              return viewer.entities.add({
+                  position: Cesium.Cartesian3.fromDegrees(...options.position),
+                  ellipsoid: {
+                      radii: new Cesium.CallbackProperty(() => {
+                          return new Cesium.Cartesian3(shieldScale, shieldScale, shieldScale)
+                      }, false),
+                      maximumCone: Cesium.Math.PI_OVER_TWO,
+                      material: material,
+                  }
+              });
+          }
+
+          const createFlowWallEffect = (options = {}) => {
+            let material = new Cesium.FlowWallMaterialProperty(options)
+            return viewer.entities.add({
+                wall: {
+                    positions: Cesium.Cartesian3.fromDegreesArrayHeights(options.positions),
+                    material: material
+                }
+            })
+        }
+
+        const createFlameRadiationEffect = (options = {}) => {
+        let material = new Cesium.FlameRadiationMaterialProperty(options)
+        return viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(...options.position),
+            ellipse: {
+                semiMinorAxis: new Cesium.CallbackProperty(() => {
+                    return flameRadiationScale
+                }, false),
+                semiMajorAxis: new Cesium.CallbackProperty(() => {
+                    return flameRadiationScale
+                }, false),
+                material: material,
+                // classificationType: false
+            },
+        })
+    }
+
+
+    if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+    }
+</script>
+</body>
+
+</html>

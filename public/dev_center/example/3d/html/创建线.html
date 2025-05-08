@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>创建线</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+  </div>
+</body>
+
+<script>
+  var viewer;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+
+    var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 添加线
+    var colors = [];
+    for (let i = 0; i < 2; ++i) {
+      colors.push(Cesium.Color.fromRandom({
+        alpha: 1.0
+      }));
+    }
+    var positions = [
+      Cesium.Cartesian3.fromDegrees(114.30027931279204, 35.7255065540317),
+      Cesium.Cartesian3.fromDegrees(114.29377127295679, 35.72290083627211)
+    ];
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: new Cesium.GeometryInstance({
+          geometry: new Cesium.PolylineGeometry({
+            positions: positions,
+            width: 5.0,
+            vertexFormat: Cesium.PolylineColorAppearance.VERTEX_FORMAT,
+            colorsPerVertex: true,
+            colors: colors,
+          }),
+        }),
+        appearance: new Cesium.PolylineColorAppearance(),
+      })
+    );
+
+    // 添加动态线
+    var linePositions = {
+      positions: [
+        Cesium.Cartesian3.fromDegrees(114.29982754370138, 35.7234422713485),
+        Cesium.Cartesian3.fromDegrees(114.29406537913522, 35.72126063374005)
+      ],
+      width: 6.
+    };
+
+    var geometryInstance = new Cesium.GeometryInstance({
+      geometry: new Cesium.PolylineGeometry(linePositions),
+      attributes: {
+        // 线段长度,单位米
+        length: new Cesium.GeometryInstanceAttribute({
+          componentDatatype: Cesium.ComponentDatatype.FLOAT,
+          componentsPerAttribute: 1,
+          normalize: true,
+          value: new Float32Array([500])
+        }),
+      }
+    });
+
+    var materialOption = {
+      type: 'RunLineShader1', // 动态线
+      odColor: new Cesium.Color(1., 1., 0.1, 1.5), // 线颜色
+      rate: 0.4, // 控制动态线显示比例,1.代表全部显示
+      t_rate: 60, // 控制动态线移动速度
+      glint: true, // 控制是否闪烁
+    };
+
+    var line = Cesium.LineGlow.createLines(geometryInstance, materialOption, 'Primitive');
+    viewer.scene.primitives.add(line);
+
+    // 创建管道
+    var conduitPositions = Cesium.Cartesian3.fromDegreesArrayHeights([
+      114.29950797565583, 35.72216757924726, 0,
+      114.29442043233017, 35.72044093827469, 0
+    ]);
+    var polylineVolumeFill = new Cesium.GeometryInstance({
+      geometry: new Cesium.PolylineVolumeGeometry({
+        polylinePositions: conduitPositions,
+        vertexFormat: Cesium.PerInstanceColorAppearance.VERTEX_FORMAT,
+        shapePositions: starPositions(7, 5.0, 5.0),
+      }),
+      attributes: {
+        color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.fromRandom({ alpha: 1.0 })),
+      },
+    });
+
+    viewer.scene.primitives.add(
+      new Cesium.Primitive({
+        geometryInstances: [
+          polylineVolumeFill,
+        ],
+        appearance: new Cesium.PerInstanceColorAppearance({
+          translucent: false,
+          closed: true,
+        }),
+      })
+    );
+
+    // 设置位置
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.29343663013724, 35.71509772852922, 437.7322358950821),
+      orientation: {
+        heading: Cesium.Math.toRadians(18.467521399221052),
+        pitch: Cesium.Math.toRadians(-25.841296181768428),
+        roll: 0
+      }
+    });
+  }
+
+  function starPositions(arms, rOuter, rInner) {
+    const angle = Math.PI / arms;
+    const pos = [];
+    for (let i = 0; i < 2 * arms; i++) {
+      const r = i % 2 === 0 ? rOuter : rInner;
+      const p = new Cesium.Cartesian2(
+        Math.cos(i * angle) * r,
+        Math.sin(i * angle) * r
+      );
+      pos.push(p);
+    }
+    return pos;
+  }
+
+  function startup() {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

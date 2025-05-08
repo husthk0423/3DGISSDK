@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>示例代码</title>
+  <meta name="description" content="Description">
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="../../vendor/themes/vue.css">
+  <link rel="stylesheet" href="../../vendor/viewer.css">
+  <link rel="stylesheet" href="../../vendor/style.css">
+  <style type="text/css">
+    body,
+    select,
+    textarea,
+    html,
+    input {
+      font-family: "微软雅黑";
+    }
+  </style>
+  <style type="text/css">
+    .markdown-section {
+      padding: 0px;
+      width: 100%;
+      height: 100%;
+      max-width: 3000px;
+    }
+
+    .content {
+      padding-top: 0px;
+      left: 0px;
+    }
+
+    .sidebar ul li a {
+      overflow: inherit;
+    }
+
+    .hj-wrap {
+      clear: both;
+      border: 0px;
+    }
+
+    .hj-transverse-split-div {
+      float: left;
+      height: 100%;
+      padding: 0px;
+      position: relative;
+      border: 0px;
+    }
+
+    .hj-wrap .hj-transverse-split-label {
+      float: left;
+      width: 8px;
+      height: 100%;
+      display: block;
+      cursor: e-resize;
+      background-color: #90EE90;
+      position: relative;
+    }
+
+    .hj-transverse-split-label-bg {
+      float: left;
+      width: 0.5%;
+      height: 100%;
+      display: block;
+      cursor: e-resize;
+      position: relative;
+    }
+
+    /*table tr td{*/
+    /*border:1px solid #fff;*/
+    /*}*/
+    .hj-vertical-split-div {
+      height: 150px;
+      border: 0px solid red;
+      width: 99.9%;
+      margin: 0 auto;
+    }
+
+    .hj-vertical-split-label {
+      width: 100%;
+      height: 10px;
+      display: block;
+      cursor: n-resize;
+      background-color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+</body>
+<script src="../../lib/jquery/jquery-1.11.1.js"></script>
+<script src="../../vendor/monitorSplitWindows.js"></script>
+<script>
+  window.$docsify = {
+    subMaxLevel: 2,
+    loadSidebar: '_sidebar.md',
+    homepage: '/md/加载球皮.md',
+    search: {
+      maxAge: 86400000,
+      paths: 'auto',
+      placeholder: '搜索',
+      noData: '找不到结果'
+    },
+    plugins: [
+      function (hook, vm) {
+        hook.ready(function (html) {
+          $('main').addClass("hj-wrap");
+          $('aside').addClass("hj-transverse-split-div-left");
+          $("aside").width("24%");
+          $('aside').after('<label class="hj-transverse-split-label" id="splitLabel" style="position: fixed;left: 24.3%;z-index:100" >&nbsp;</label>');
+          $('aside').after('<label id="leftDiv" class="hj-transverse-split-label-bg" style="width:25%;">&nbsp;</label>');
+          $('section').addClass("hj-transverse-split-div");
+          $("section").width("75%");
+          frist = false;
+        });
+      }
+    ]
+  }
+</script>
+<script src="../../vendor/docsify.js"></script>
+<script src="../../vendor/plugins/search.js"></script>
+
+</html>

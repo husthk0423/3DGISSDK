@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>晴天</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../libs/Cesium/Widgets/widgets.css">
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+</body>
+
+<script>
+  var viewer;
+  var start;
+  var end;
+
+  function createMap() {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      fullscreenButton: false, // 是否显示全屏按钮控件
+      vrButton: false, // 是否显示vr按钮控件
+      geocoder: false, // 是否显示地名查找控件
+      homeButton: false, // 是否显示主页按钮控件
+      infoBox: false, // 是否显示点击要素之后显示的信息
+      sceneModePicker: false, // 是否显示投影方式控件
+      selectionIndicator: false, // 是否获取选择周指示器
+      timeline: true, // 是否显示时间线控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      // contextOptions:{
+      //   requestWebgl2:true
+      // },
+      // msaaSamples:4,
+      imageryProvider: false, //不加载cesium提供的图层
+    });
+    viewer._cesiumWidget._creditContainer.style.display = "none"; // 去除icon
+    viewer.scene.globe.depthTestAgainstTerrain = true; // 深度测试
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#99ccff");
+
+    viewer.scene.globe.enableLighting = true; // 启用使用场景光源照亮地球
+    // viewer.scene.logarithmicDepthBuffer = false;
+
+    // 启用gbuffer绘制
+    viewer.scene.enableGBuffer = true;
+    viewer.scene._czmRenderGBufferPass = [Cesium.Pass.CESIUM_3D_TILE, Cesium.Pass.TRANSLUCENT];
+    viewer.scene._czmGbufferManager.isReady = true;
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      maximumMemoryUsage: modelConfig.maximumMemoryUsage, // 一个3dtiles图层占用的最大内存，默认为512M。此值如果大于客户机可使用内存，可能导致应用崩溃。
+      maxmumScreenSpaceError: modelConfig.maxmumScreenSpaceError, // 默认值为16，值越小，模型越清晰，没有显卡的客户机，可以将此值设置大些，以牺牲显示效果，换取流畅的速度
+      useIndexDB: modelConfig.useIndexDB, // 默认为false。是否使用indexdb存储已经下载的3dtiles瓦片，开启则会消耗更多的cpu资源，但是后续加载3dtiles的速度会变快。
+      skipLevelOfDetail: modelConfig.skipLevelOfDetail, // 默认值为false，是否跳过中间层级，设置为true，可减少瓦片加载的数量。
+      skipLevels: modelConfig.skipLevels, // 当开启skipLevelOfDetail时，有效，默认跳过1级。
+      workNum: modelConfig.workNum, // 开启子线程的数量，默认值为0，为0时，使用主线程加载3dtiles。 cpu配置低时建议设置为0.
+      // subdomains: ["1.119.169.68:10050"], // 多通道下载，高配的电脑建议设置8条通道，会加载下载速度。 低配建议2条通道，多条通道会导致同时解码的瓦片偏多，降低帧率
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl
+    });
+    tile3d.readyPromise.then(tileset => {
+      var boundingSphere = tileset.boundingSphere;
+      var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+      var surface = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, 0.0);
+      var offset = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, -74);
+      var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+      tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+      viewer.scene.primitives.add(tileset);
+    });
+
+    //时间管理类，不同的时间，给与太阳不同的光照强度和颜色
+    var timeManager = new Cesium.TimeManager(viewer);
+    var start = Cesium.JulianDate.fromDate(new Date("2024/1/18 9:30:00"));
+    var end = Cesium.JulianDate.fromDate(new Date("2024/1/18 9:30:00"));
+    let clock = viewer.clock;
+    clock.startTime = start;
+    clock.currentTime = start;
+    clock.stopTime = end;
+    clock.clockRange = Cesium.ClockRange.CLAMPED;
+    clock.shouldAnimate = false;
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31864880290011, 35.721800698021916, 19.898541102303913),
+      orientation: {
+        heading: Cesium.Math.toRadians(162.4037143505585),
+        pitch: Cesium.Math.toRadians(8.785479777651954),
+        roll: Cesium.Math.toRadians(359.9997223110022)
+      }
+    });
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

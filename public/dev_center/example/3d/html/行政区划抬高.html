@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1"> <!-- Use Chrome Frame in IE -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="A sample Vector dataset on terrain rendered with 3D Tiles.">
+    <meta name="cesium-sandcastle-labels" content="Showcases, 3D Tiles">
+    <title>行政区划抬高</title>
+    
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/Cesium/Cesium.js"></script>
+
+</head>
+<div id="cesiumContainer" class="fullSize"></div>
+
+<script >
+   var viewer;
+    var terrainObjArr = []
+    var markDataSource = null
+
+    function startup(Cesium) {
+        createMap();
+    }
+   
+    function createMap() {
+      var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: 'http://124.70.104.88:9066/tile/terrain/terrain_proxy/getTile'
+      });
+
+        viewer  = new Cesium.Viewer('cesiumContainer',{
+          terrainProvider : cesiumTerrainProvider,
+            selectionIndicator: false,
+            useBrowserRecommendedResolution:true,
+            animation: false,  //是否显示动画控件
+            baseLayerPicker: false, //是否显示图层选择控件
+            geocoder: false, //是否显示地名查找控件
+            timeline: false, //是否显示时间线控件
+            sceneModePicker: true, //是否显示投影方式控件
+            navigationHelpButton: false, //是否显示帮助信息控件
+            infoBox: false,  //是否显示点击要素之后显示的信息
+            imageryProvider:false,
+            fullscreenButton: true});
+
+        viewer.scene.primitives.destroyPrimitives = false;
+        viewer.scene.globe.preloadAncestors = true;
+        var imageryLayers = viewer.imageryLayers;
+        var scene = viewer.scene;
+        //天地图影像图层
+        var tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+            url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=440b96d736fad95da7934bc130a2258a",
+            layer: "tdtImg_c",
+            style: "default",
+            format: "tiles",
+            tileMatrixSetID: "c",
+            subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+            tilingScheme: new Cesium.GeographicTilingScheme(),
+            tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+            maximumLevel: 18,
+        }));
+        viewer.imageryLayers.add(tiandituImageLayer);
+
+
+        viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          113.63995390572707,
+          35.203398067722134,
+          49480.50991531462
+        ), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(43.020308542845186),
+          pitch: Cesium.Math.toRadians(-31.066220990235283),
+          roll: Cesium.Math.toRadians(359.99957800694733),
+        },
+      });
+
+      $.getJSON("../data/json/1.json",function(res){
+    
+
+        var wallgeojson = new Cesium.Geojson();
+        wallgeojson.read(res);
+        upTerrain(viewer, wallgeojson, 2000);
+      })
+
+    }
+
+    function upTerrain(viewer, wallgeojson, height){
+      var glowLinePoints = [];
+      var upliftPositions = [];
+      var pts = wallgeojson.polygonArray[0].geometry.pts;
+
+      var index = 1;
+      for (var i = 0; i < pts.length; i++) {
+        glowLinePoints.push(pts[i]);
+        if (index % 2 == 0) {
+          var cs3 = new Cesium.Cartesian3.fromDegrees(pts[i - 1], pts[i], 0);
+          upliftPositions.push(cs3);
+          glowLinePoints.push(height + 20);
+        }
+        index++;
+      }
+      addMaskingOut(Cesium.Cartesian3.fromDegreesArrayHeights(glowLinePoints));
+
+
+      var terrainClip = new Cesium.TerrainClip(viewer, {
+        image: "../data/img/3.jpg",
+        imageBottom: "../data/img/3.jpg",
+        splitNum: 80 // 井边界插值数
+      });
+
+      var terrainObj = terrainClip.addPolygon(upliftPositions, { diffHeight: height, upHeight: height });
+      terrainObjArr.push(terrainObj);
+
+    }
+
+    function addMaskingOut(hole){
+      markDataSource = new Cesium.CustomDataSource("inverseShade");
+      viewer.dataSources.add(markDataSource);
+
+
+      markDataSource.entities.add({
+        parentId: 'maskingOut',
+        polygon: {
+          // 获取指定属性（positions，holes（图形内需要挖空的区域））
+          hierarchy: {
+            //左下左上右上右下
+            // 对应经纬度[0,60],[0,-60],[180,-60],[180,60],[0,60]
+            positions: [
+              {
+                x: 3197104.586923899,
+                y: 0.5580000157243585,
+                z: 5500477.1339386385,
+              },
+              {
+                x: 3197104.586923899,
+                y: 0.5580000157243585,
+                z: -5500477.1339386385,
+              },
+              {
+                x: -3197104.5869239476,
+                y: 3.915323898915733,
+                z: -5500477.1339386385,
+              },
+              {
+                x: -3197104.5869239476,
+                y: 3.915323898915733,
+                z: 5500477.1339386385,
+              },
+              {
+                x: 3197104.586923899,
+                y: 0.5580000157243585,
+                z: 5500477.1339386385,
+              },
+            ],
+            holes: [{ positions: hole }]
+          },
+          // 填充的颜色，withAlpha透明度
+          material: Cesium.Color.BLACK.withAlpha(0.8),
+          // 是否被提供的材质填充
+          fill: true,
+          // 是否显示
+          show: true,
+          // 顺序,仅当`clampToGround`为true并且支持地形上的折线时才有效。
+          zIndex: 10,
+        }
+      });
+
+      markDataSource.entities.add({
+        parentId: 'maskingOut',
+        polyline: {
+          positions: hole,
+          width: 30,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.2,
+            color: Cesium.Color.fromCssColorString("#00DAFF").withAlpha(0.8),
+          }),
+          clampToGround: true
+        }
+      });
+    }
+
+    if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>绘制线</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel='stylesheet' href='./css/geoway-gl.css' />
+		<script src="./js/geoway-gl-dev.min.js"></script>
+		<style>
+			body {margin: 0;padding: 0;}
+			html,body,#map {height: 100%;}
+		</style>
+
+	</head>
+	<body>
+		<div id='map'></div>
+		<script>
+			var map = new Geoway.Map({
+				container: 'map',
+				pitch: 30,
+				zoom: 18,
+				maxTileCacheSize: 100,
+				fontName: '微软雅黑',
+				glyphUrl: './fonts/{fontstack}/{range}.pbf',
+				center: [120.14597, 30.27377]
+			});
+			map.setLightIntensity(0.3);
+			//底图图层
+			var xyz = new Geoway.XYZLayer([
+				'http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=sanwei_test1&tilesize=512&ratio=1'
+			], {
+				tileSize: 512
+			});
+			map.addLayer(xyz);
+
+			var geoSourceLayer = new Geoway.GeoSourceLayer(map);
+			map.addLayer(geoSourceLayer);
+
+			var feature = {};
+			feature.wkt =
+				"LINESTRING(120.14597 30.27377,120.14547 30.27377,120.14547 30.27307,120.14597 30.27307,120.14597 30.27377)";
+			feature.paintProperties = {
+				strokeColor: '#0000ff',
+				strokeWidth: 5,
+				strokeOpacity: 1.0,
+				lineCap: 'round',
+				lineJoin: 'round'
+			}; //bevel,miter
+			geoSourceLayer.addFeature(feature);
+		</script>
+	</body>
+</html>

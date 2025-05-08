@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>体积云</title>
+    <link rel="stylesheet" href="../../libs/Cesium/Widgets/widgets.css" />
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/jquery-3.1.1.min.js"></script>
+    <script src="../js/config.js"></script>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>显隐</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: show" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>丁达尔强度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="2" step="0.01" data-bind="value: godRay, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>2)value=2" data-bind="value: godRay, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>风向</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="360" step="0.01" data-bind="value: windParam, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>360)value=360" data-bind="value: windParam, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>风速</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1000" step="0.01" data-bind="value: windSpeed, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1000)value=1000" data-bind="value: windSpeed, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>密度</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.01" data-bind="value: volumetCloudDensity, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: volumetCloudDensity, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>最小高度</span>
+          <input type="range" class="form-range" id="customRange" min="500" max="40000" step="0.01" data-bind="value: volumetCloudToHeight, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<500)value=500;if(value>40000)value=40000" data-bind="value: volumetCloudToHeight, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>最大高度</span>
+          <input type="range" class="form-range" id="customRange" min="500" max="40000" step="0.01" data-bind="value: volumetCloudToHeight2, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<500)value=500;if(value>40000)value=40000" data-bind="value: volumetCloudToHeight2, valueUpdate: 'input'" />
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script src="../js/tabToggle.js"></script>
+  <script>
+    var viewer;
+    var atmosphereCloud;
+    var viewModel = {
+      show: true,
+      godRay: 1.5,
+      windParam: 0.9,
+      windSpeed: 100,
+      volumetCloudDensity: 0.36,
+      volumetCloudToHeight: 2000,
+      volumetCloudToHeight2: 15000,
+    };
+
+    function createMap() {
+      var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+        requestVertexNormals: true,
+        url: terrainUrl,
+      });
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: cesiumTerrainProvider, // 加载地形
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        fullscreenButton: false, // 是否显示全屏按钮控件
+        vrButton: false, // 是否显示vr按钮控件
+        geocoder: false, // 是否显示地名查找控件
+        homeButton: false, // 是否显示主页按钮控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        sceneModePicker: false, // 是否显示投影方式控件
+        selectionIndicator: false, // 是否获取选择周指示器
+        timeline: true, // 是否显示时间线控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+        // contextOptions:{
+        //   requestWebgl2:true
+        // },
+        // msaaSamples:4,
+        imageryProvider: false, //不加载cesium提供的图层
+      });
+      window.viewer=viewer
+      viewer._cesiumWidget._creditContainer.style.display = 'none'; // 去除icon
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.shadows = true;
+      viewer.scene.globe.enableLighting = true;
+      // 启用gbuffer绘制
+      viewer.scene.enableGBuffer = true;
+      viewer.scene._czmRenderGBufferPass = [Cesium.Pass.CESIUM_3D_TILE];
+      viewer.scene._czmGbufferManager.isReady = true;
+
+      var timeManager = new Cesium.TimeManager(viewer);
+      var start = Cesium.JulianDate.fromDate(new Date('2024/2/26 8:30:00'));
+      var end = Cesium.JulianDate.fromDate(new Date('2024/2/26 8:30:00'));
+      let clock = viewer.clock;
+      clock.startTime = start;
+      clock.currentTime = start;
+      clock.stopTime = end;
+      clock.clockRange = Cesium.ClockRange.CLAMPED;
+      clock.shouldAnimate = false;
+
+      const tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17,
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(113.98476273572889, 36.35339888788477, 335.98935090058745), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(104.27872418256966),
+          pitch: Cesium.Math.toRadians(2.866574696217926),
+          roll: Cesium.Math.toRadians(0),
+        },
+      });
+    }
+
+    function addAtmosphereCloud() {
+      atmosphereCloud = new Cesium.AtmosphereCloud(viewer, { volumetricClouds: true });
+      window.atmosphereCloud=atmosphereCloud
+      // 绑定控件
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+      updatePostProcess();
+    }
+
+    function updatePostProcess() {
+      atmosphereCloud.show = Boolean(viewModel.show);
+      atmosphereCloud._cloudParam2.y = Number(viewModel.godRay);
+      atmosphereCloud.windParam = Number(viewModel.windParam);
+      atmosphereCloud.windSpeed = Number(viewModel.windSpeed);
+      atmosphereCloud.volumetCloudDensity = Number(viewModel.volumetCloudDensity);
+      atmosphereCloud.volumetCloudToHeight = Number(viewModel.volumetCloudToHeight);
+      atmosphereCloud.volumetCloudToHeight2 = Number(viewModel.volumetCloudToHeight2);
+    }
+
+    // 添加水面
+    function addWater() {
+      ReflectWater = new Cesium.ReflectWater(viewer, {
+        positions: waterPosition3,
+        height: 214,
+        normalMapUrl: '../../img/water.jpg',
+        waterColor: '#99ccff',
+        gapFrame: 2,
+        distortionScale: 0.2,
+        rippleSize: new Cesium.Cartesian2(500, 300), // 涟漪大小
+      });
+    }
+
+    if (typeof Cesium !== 'undefined') {
+      createMap();
+      addAtmosphereCloud();
+      addWater();
+    }
+  </script>
+</html>

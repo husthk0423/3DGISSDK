@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>创建物体</title>
+  <link rel="stylesheet" href="../../css/./bootsrap-3.2.min.css">
+  <link rel="stylesheet" href="../../css/bootstrap-slider.css">
+  <link rel="stylesheet" href="../../css/layui.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../css/modelBase.css">
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../../libs/bootstrap-slider.js"></script>
+  <script src="../js/config.js"></script>
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+
+  <!-- 基础面板 -->
+  <div class="panel-box">
+    <div class="panel-header">
+      <span>模型库</span>
+    </div>
+
+    <div class="panel-body">
+      <div class="layui-tab" lay-filter="test-handle">
+        <ul class="layui-tab-title">
+          <li class="layui-this" lay-id="1">模型管理</li>
+          <li lay-id="2">模型数据</li>
+        </ul>
+        <div class="layui-tab-content">
+          <!-- 模型管理 -->
+          <div class="layui-tab-item layui-show">
+            <div class="model-btn-list">
+              <div class="btn" onclick="openAddPanel()">新增模型</div>
+              <div class="btn" onclick="removeModelCard()">删除按钮</div>
+              <div class="btn" onclick="addModelToScene()">添加到场景</div>
+            </div>
+
+            <div class="model-content">
+              <div class="model-card">
+                <div class="card-title"><span>基础设置</span></div>
+
+                <div class="card-body base-facility"></div>
+              </div>
+
+              <div class="model-card">
+                <div class="card-title"><span>交通工具</span></div>
+
+                <div class="card-body traffic-tool"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 模型数据 -->
+          <div class="layui-tab-item">
+            <table class="layui-table">
+              <colgroup>
+                <col width="120">
+                <col width="120">
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>数据名称</th>
+                  <th>数据类型</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody class="mode-tbody">
+              </tbody>
+            </table>
+            <div class="empty-tips">
+              <span>暂无数据</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增模型 -->
+  <div class="panel-box add-model">
+    <div class="panel-header">
+      <span>新增模型</span>
+    </div>
+
+    <div class="panel-body">
+      <form class="layui-form" action="form.html">
+        <div class="layui-form-item">
+          <label class="layui-form-label">模型名称</label>
+          <div class="layui-input-block">
+            <input type="text" name="username" lay-verify="required" placeholder="请输入" autocomplete="off"
+              class="layui-input model-name">
+          </div>
+        </div>
+
+        <div class="layui-form-item">
+          <label class="layui-form-label">类型</label>
+          <div class="layui-input-inline">
+            <select class="model-type" name="modules" lay-verify="required" lay-search>
+              <option value="1">基础设置</option>
+              <option value="2">交通工具</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="layui-form-item">
+          <label class="layui-form-label">格式</label>
+          <div class="layui-input-inline">
+            <select class="model-format" name="modules1" lay-verify="required" lay-search>
+              <option value="glb">glb</option>
+              <option value="gltf">gltf</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="layui-form-item">
+          <label class="layui-form-label">缩略图</label>
+          <div class="layui-upload-drag" style="display: block;" id="ID-upload-demo-drag">
+            <i class="layui-icon layui-icon-upload"></i>
+            <div>点击上传，或将文件拖拽到此处</div>
+            <div class="layui-hide" id="ID-upload-demo-preview">
+              <img src="upload.html" alt="上传成功后渲染" style="max-width: 100%">
+              <div class="img-mark">
+                <i class="layui-icon  layui-icon-delete"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="layui-form-item model-upload">
+          <label class="layui-form-label">模型地址</label>
+          <div class="layui-input-block">
+            <input type="text" name="username" lay-verify="required" autocomplete="off" disabled
+              class="layui-input model-address">
+            <button type="button" class="layui-btn layui-btn-normal layui-btn-sm" id="ID-upload-demo-choose">上传</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="upload-btn">
+        <button type="button" class="layui-btn layui-btn-primary layui-btn-sm cancel-btn"
+          onclick="closeAddPanel()">取消</button>
+        <button type="button" class="layui-btn layui-btn-normal layui-btn-sm" onclick="uploadModel()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模型编辑 -->
+  <div class="panel-box model-edit">
+    <div class="panel-header">
+      <span>模型编辑</span>
+    </div>
+
+    <div class="panel-body">
+      <div class="form-box">
+        <div class="form-item">
+          <label>名称</label>
+          <input type="text" name="" placeholder="" class="layui-input edit-name">
+        </div>
+
+        <div class="form-item pos">
+          <label>经度</label>
+          <input type="number" name="" placeholder="" class="layui-input edit-lng" onchange="changeModel(true)">
+
+          <label>纬度</label>
+          <input type="number" name="" placeholder="" class="layui-input edit-lat" onchange="changeModel(true)">
+        </div>
+
+        <div class="form-item pos">
+          <label>高度</label>
+          <input type="number" name="" placeholder="" class="layui-input edit-high" onchange="changeModel(true)">
+
+          <label>缩放</label>
+          <input type="number" name="" placeholder="" class="layui-input edit-scale" onchange="changeModel(true)">
+        </div>
+
+        <div class="form-item">
+          <label>方位角</label>
+          <div class="slider-box">
+            <input id="heading" class="edit-heading" type="text" data-slider-min="-180" data-slider-max="180"
+              data-slider-step="0.1"
+              data-slider-value="1"
+              onchange="changeModel(true)" />
+          </div>
+        </div>
+
+        <div class="form-item">
+          <label>俯仰角</label>
+          <div class="slider-box">
+            <input id="pitch" class="edit-pitch" type="text" data-slider-min="-180" data-slider-max="180"
+              data-slider-step="0.1"
+              data-slider-value="1"
+              onchange="changeModel(true)" />
+          </div>
+        </div>
+
+        <div class="form-item">
+          <label>翻滚角</label>
+          <div class="slider-box">
+            <input id="roll" class="edit-roll" type="text" data-slider-min="-180" data-slider-max="180"
+              data-slider-step="0.1"
+              data-slider-value="1"
+              onchange="changeModel(true)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-btn">
+      <button type="button" class="layui-btn layui-btn-primary layui-btn-sm cancel-btn"
+        onclick="closeEditPanel()">取消</button>
+      <button type="button" class="layui-btn layui-btn-normal layui-btn-sm" onclick="saveModelInfo()">确定</button>
+    </div>
+  </div>
+</body>
+
+<script src="../../libs/layui.js"></script>
+<script>
+  var viewer;
+  var uploadData = {};
+  var _handlers;
+  var tooltip;
+  var selectModelCard;
+  var activeModel;
+  var axisModel;
+  var modelList = [];
+  var headingSlider;
+  var pitchSlider;
+  var rollSlider;
+  var showAxis = false;
+  var models = [];
+
+  function createMap() {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      requestVertexNormals: true,
+      url: terrainUrl,
+    });
+
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: cesiumTerrainProvider, // 加载地形
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      infoBox: false // 是否显示点击要素之后显示的信息
+    });
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.primitives.destroyPrimitives = false;
+    viewer.scene.postProcessStages._fxaa.enabled = true;
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    // 设置位置
+     viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31237412485905,35.71741990170554, 153.40526987345189),
+      orientation: {
+        heading: Cesium.Math.toRadians(38.07402339367952),
+        pitch: Cesium.Math.toRadians(-18.3521067991518),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+  }
+
+  function createTool() {
+    tooltip = document.createElement('DIV');
+    document.body.appendChild(tooltip);
+    tooltip.style = 'position: absolute;background: rgba(0,0,0,0.5); z-index: 999;line-height: 18px;pointer-events: none;';
+    tooltip.innerHTML = '<span style="color: #fff; font-size: 12px;padding:4px">单击添加</span>';
+  }
+
+  // 显示tooltip提示
+  function m_start() {
+    document.body.style.cursor = "crosshair";
+    remove_handlers();
+    showTooltip();
+  }
+
+  // 隐藏tooltip提示
+  function m_end() {
+    document.body.style.cursor = "default";
+    remove_handlers();
+    hideTooltip();
+  }
+
+  function showTooltip() {
+    tooltip.style.display = 'block';
+  }
+
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+  }
+
+  function remove_handlers() {
+    _handlers && _handlers.destroy();
+    _handlers = null;
+  }
+
+  /**
+   * 模型管理面板
+   * */
+  // 获取模型卡片数据
+  function getModelFindall() {
+    var postData = { page: 1, size: 10 };
+
+    $.ajax({
+      url: `${baseIp2}:8021/datahub/cityUnit/model/findall`,
+      type: 'POST',
+      data: JSON.stringify(postData),
+      processData: false,
+      contentType: 'application/json',
+      headers: {
+        'Accept': 'application/json, text/plain, */*'
+      },
+      success: (res) => {
+        if (res.statusCode == 200 && res.data.length) {
+          var modelList = res.data;
+          $(`.base-facility`).empty();
+          $(`.traffic-tool`).empty();
+          modelList.forEach(item => {
+            var modelItem = $(`<div class="model-item"><img src="${item.thumurl}" alt=""> <span>${item.name}</span></div>`);
+            modelItem[0].statsData = item;
+            var parentClass = item.type == '基础设置' ? 'base-facility' : 'traffic-tool';
+            $(`.${parentClass}`).append(modelItem);
+            modelItem.click(function () {
+              m_end();
+              var nodeList = Array.from(document.querySelectorAll('.model-item'));
+              nodeList.forEach(item => {
+                if (item.statsData.id != $(this)[0].statsData.id) {
+                  $(item).removeClass('model-item-this');
+                } else {
+                  if ($(this)[0].className.includes('model-item-this')) {
+                    $(this).removeClass('model-item-this');
+                    selectModelCard = null;
+                  } else {
+                    $(this).addClass('model-item-this');
+                    selectModelCard = $(this);
+                  }
+                }
+              });
+            });
+          });
+        }
+      },
+      error: (err) => {
+        console.log(err);
+      }
+    });
+  }
+
+  /**
+   * 添加到场景按钮
+   * */
+  function addModelToScene() {
+    if (!selectModelCard) return;
+    closeAddPanel();
+    m_start();
+    _handlers = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    _handlers.setInputAction((movement) => {
+      tooltip.style.left = movement.endPosition.x + 5 + 'px';
+      tooltip.style.top = movement.endPosition.y - 28 + 'px';
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    _handlers.setInputAction((e) => {
+      m_end();
+      let cartesian = null;
+      let primitive = viewer.scene.pick(e.position);
+      if (primitive) {
+        cartesian = viewer.scene.pickPosition(e.position);
+      } else {
+        let ray = viewer.camera.getPickRay(e.position);
+        cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      }
+      if (!cartesian) return;
+      const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+      const lng = Cesium.Math.toDegrees(cartographic.longitude).toFixed(6);
+      const lat = Cesium.Math.toDegrees(cartographic.latitude).toFixed(6);
+      const alt = cartographic.height;
+      $('.model-edit').css({ 'display': 'block' });
+      var statsData = selectModelCard[0].statsData;
+      var options = {
+        id: new Date().getTime(),
+        url: statsData.url,
+        scale: 1
+      };
+      var params = { lng, lat, alt, name: statsData.name, scale: 1 };
+      loadModelGlb(options, cartesian);
+      updateToView(params);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  }
+
+  function loadModelGlb(options, cartesian, isActive = true) {
+    var hpRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(options.heading || 0), Cesium.Math.toRadians(options.pitch || 0), Cesium.Math.toRadians(options.roll || 0));
+    var converter = options.converter || Cesium.Transforms.eastNorthUpToFixedFrame;
+    var modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(cartesian, hpRoll, Cesium.Ellipsoid.WGS84, converter);
+    if (options.scale) Cesium.Matrix4.multiplyByUniformScale(modelMatrix, options.scale, modelMatrix);
+
+    var modelPrimitive = viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      url: options.url,
+      modelMatrix: modelMatrix,
+    }));
+    modelPrimitive.modelId = options.id;
+    modelList.push({ id: options.id, modelPrimitive });
+
+    modelPrimitive.readyPromise.then(function (model) {
+      model.activeAnimations.addAll({
+        loop: Cesium.ModelAnimationLoop.REPEAT
+      });
+      if (isActive) activeEdit(model);
+    });
+  }
+
+  function removeModel(id) {
+    if (id) {
+      for (let i = 0; i < modelList.length; i++) {
+        const item = modelList[i];
+        if (item.id == id) {
+          viewer.scene.primitives.remove(item.modelPrimitive);
+          modelList.splice(i, 1);
+          i--;
+        }
+      }
+    } else {
+      modelList.forEach(item => {
+        viewer.scene.primitives.remove(item.modelPrimitive);
+      });
+      modelList = [];
+    }
+  }
+
+  function activeEdit(model) {
+    cancelEdit();
+    activeModel = model;
+    // 加载坐标轴模型
+    axisModel = viewer.scene.primitives.add(Cesium.Model.fromGltf({
+      name: 'axis',
+      id: 'axis',
+      url: '../data/gltf/axis.gltf',
+      modelMatrix: new Cesium.Matrix4(),
+      colorBlendMode: Cesium.ColorBlendMode.HIGHLIGHT
+    }));
+
+    axisModel.readyPromise.then((axisModel) => {
+      axisModel.activeAnimations.addAll({
+        loop: Cesium.ModelAnimationLoop.REPEAT
+      });
+      axisModel = axisModel;
+      updateAxisMatrix();
+    });
+    initModelEditEvent();
+  }
+
+  function cancelEdit() {
+    if (!axisModel) return;
+    viewer.scene.primitives.remove(axisModel);
+    axisModel = null;
+  }
+
+  // 将坐标轴模型移到与模型相同的角度和位置，并放大到外接球的大小 
+  function updateAxisMatrix() {
+    let editScale = Number($('.edit-scale')[0].value);
+    var scale = activeModel.boundingSphere.radius / 1.5 / editScale;
+    axisModel.modelMatrix = Cesium.Matrix4.multiplyByUniformScale(activeModel.modelMatrix, scale, new Cesium.Matrix4());
+  }
+
+  // 坐标轴模型事件
+  function initModelEditEvent() {
+    !_handlers && (_handlers = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas));
+    let axisType = '';
+
+    // 左键按下
+    _handlers.setInputAction((event) => {
+      var pickedObject = viewer.scene.pick(event.position);
+      if (Cesium.defined(pickedObject) && pickedObject.id === axisModel.id) {
+        axisType = pickedObject.detail.node._name;
+        showAxis = true;
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
+
+    // 左键弹起
+    _handlers.setInputAction(function (event) {
+      showAxis = false;
+      cameraControl(true);
+    }, Cesium.ScreenSpaceEventType.LEFT_UP);
+
+    // 鼠标拖动
+    _handlers.setInputAction((event) => {
+      var primitive = viewer.scene.pick(event.startPosition);
+      if (!primitive || !primitive.id || primitive.id != 'axis') return;
+
+      var startCartesian3 = viewer.scene.pickPosition(event.startPosition);
+      var endCartesian3 = viewer.scene.pickPosition(event.endPosition);
+
+      if (showAxis && startCartesian3 && endCartesian3) {
+        cameraControl(false); // 禁止球转动和拖动
+        var scale = Number($('.edit-scale')[0].value);
+        switch (axisType) {
+          case 'XArrow_1':
+            axisMove(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_X, 'x', 'z');
+            break;
+          case 'YArrow_1':
+            axisMove(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_Z, 'y', 'z');
+            break;
+          case 'ZArrow_1':
+            axisMove(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_Y, 'x', 'y');
+            break;
+
+          case 'XAxis_1':
+            axisRotate(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_Y, 'z', 'x');
+            break;
+          case 'YAxis_1':
+            axisRotate(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_X, 'y', 'z');
+            break;
+          case 'ZAxis_1':
+            axisRotate(startCartesian3, endCartesian3, Cesium.Cartesian3.UNIT_Z, 'x', 'y');
+            break;
+        }
+        updateToView();
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    //平移模型 处理
+    function axisMove(startCartesian3, endCartesian3, surface, zeroAxis1, zeroAxis2) {
+      let modelMatrix = activeModel.modelMatrix;
+      let scale = Number($('.edit-scale')[0].value);
+      Cesium.Matrix4.multiplyByUniformScale(modelMatrix, 1 / scale, modelMatrix);
+      let point = axisTransForm(modelMatrix, startCartesian3, endCartesian3, surface);
+      let sub = Cesium.Cartesian3.subtract(point.end, point.start, new Cesium.Cartesian3()); // 两点差值
+      sub[zeroAxis1] = 0;
+      sub[zeroAxis2] = 0;
+
+      const translation = Cesium.Matrix4.fromTranslation(sub);
+      Cesium.Matrix4.multiply(modelMatrix, translation, modelMatrix);
+      Cesium.Matrix4.multiplyByUniformScale(modelMatrix, scale, modelMatrix);
+
+      // 更新 坐标轴模型 
+      updateAxisMatrix();
+    }
+
+    //旋转模型 处理
+    function axisRotate(startCartesian3, endCartesian3, surface, tant1, tant2) {
+      let modelMatrix = activeModel.modelMatrix;
+      let scale = Number($('.edit-scale')[0].value);
+      let point = axisTransForm(modelMatrix, startCartesian3, endCartesian3, surface);
+
+      // 两点角度
+      let tant = (point.start[tant1] * point.end[tant2] - point.start[tant2] * point.end[tant1]) / (point.start[tant1] * point.end[tant1] + point.start[tant2] * point.end[tant2]);
+
+      let quat = Cesium.Quaternion.fromAxisAngle(surface, Math.atan(tant)); // quat为围绕这个surface轴旋转d度的四元数
+      let rot_mat3 = Cesium.Matrix3.fromQuaternion(quat);
+      let m2 = Cesium.Matrix4.multiplyByMatrix3(modelMatrix, rot_mat3, new Cesium.Matrix4());
+      Cesium.Matrix4.multiplyByUniformScale(modelMatrix, scale, modelMatrix);
+      // 移动模型
+      activeModel.modelMatrix = m2;
+      // 更新 坐标轴模型 
+      this.updateAxisMatrix();
+    }
+
+
+    // 旋转和平移函数得到射线和面交点(基础方法)
+    function axisTransForm(modelMatrix, startCartesian3, endCartesian3, surface) {
+      var matrix = Cesium.Matrix4.inverseTransformation(modelMatrix, new Cesium.Matrix4());
+
+      // 获取相机坐标
+      var camera1 = viewer.camera.position;
+
+      // 转模型坐标
+      var camera = Cesium.Matrix4.multiplyByPoint(matrix, camera1, new Cesium.Cartesian3());
+      var startM = Cesium.Matrix4.multiplyByPoint(matrix, startCartesian3, new Cesium.Cartesian3());
+      var endM = Cesium.Matrix4.multiplyByPoint(matrix, endCartesian3, new Cesium.Cartesian3());
+
+      // 从相机看模型的方向
+      var startDirection = Cesium.Cartesian3.normalize(Cesium.Cartesian3.subtract(startM, camera, new Cesium.Cartesian3()), new Cesium.Cartesian3());
+      var endDirection = Cesium.Cartesian3.normalize(Cesium.Cartesian3.subtract(endM, camera, new Cesium.Cartesian3()), new Cesium.Cartesian3());
+
+      // 面 
+      var plane = Cesium.Plane.fromPointNormal(Cesium.Cartesian3.ZERO, surface);
+
+      // 射线
+      var startRay = new Cesium.Ray(camera, startDirection);
+      var endRay = new Cesium.Ray(camera, endDirection);
+
+      // 射线和面交点
+      var start = Cesium.IntersectionTests.rayPlane(startRay, plane);
+      var end = Cesium.IntersectionTests.rayPlane(endRay, plane);
+
+      return { start: start, end: end };
+    }
+  }
+
+  function cameraControl(isCamera) {
+    viewer.scene.screenSpaceCameraController.enableRotate = isCamera;
+    viewer.scene.screenSpaceCameraController.enableTranslate = isCamera;
+    viewer.scene.screenSpaceCameraController.enableZoom = isCamera;
+    viewer.scene.screenSpaceCameraController.enableTilt = isCamera;
+    viewer.scene.screenSpaceCameraController.enableLook = isCamera;
+  }
+
+  function transformCartesianToWGS84(cartesian) {
+    if (viewer && cartesian) {
+      var ellipsoid = Cesium.Ellipsoid.WGS84;
+      var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+      return {
+        lng: Cesium.Math.toDegrees(cartographic.longitude),
+        lat: Cesium.Math.toDegrees(cartographic.latitude),
+        alt: cartographic.height
+      };
+    }
+  }
+
+  // 模型编辑滑块
+  function createSlider() {
+    headingSlider = $("#heading").slider();
+    pitchSlider = $("#pitch").slider();
+    rollSlider = $("#roll").slider();
+  }
+
+  // 改变模型参数
+  function changeModel() {
+    if (!showAxis && activeModel) {
+      var lng = Number($('.edit-lng')[0].value);
+      var lat = Number($('.edit-lat')[0].value);
+      var high = Number($('.edit-high')[0].value);
+      var scale = Number($('.edit-scale')[0].value);
+      var heading = headingSlider.slider('getValue');
+      var pitch = pitchSlider.slider('getValue');
+      var roll = rollSlider.slider('getValue');
+      let hpRoll = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(heading), Cesium.Math.toRadians(pitch), Cesium.Math.toRadians(roll));
+      var converter = Cesium.Transforms.eastNorthUpToFixedFrame;
+      var modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(Cesium.Cartesian3.fromDegrees(lng, lat, high), hpRoll, Cesium.Ellipsoid.WGS84, converter);
+      Cesium.Matrix4.multiplyByUniformScale(modelMatrix, scale, modelMatrix);
+      activeModel.modelMatrix = modelMatrix;
+      updateAxisMatrix();
+    }
+  }
+
+  // 保存模型
+  function saveModelInfo() {
+    if (!activeModel) return;
+    var extend = {
+      modelId: activeModel.modelId,
+      name: $('.edit-name')[0].value,
+      lng: $('.edit-lng')[0].value,
+      lat: $('.edit-lat')[0].value,
+      alt: $('.edit-high')[0].value,
+      scale: $('.edit-scale')[0].value,
+      heading: headingSlider.slider('getValue'),
+      pitch: pitchSlider.slider('getValue'),
+      roll: rollSlider.slider('getValue')
+    };
+    let postData = {
+      name: $('.edit-name')[0].value,
+      modelId: selectModelCard[0].statsData.id,
+      extend: JSON.stringify(extend),
+    };
+
+    $.ajax({
+      url: `${baseIp2}:8021/datahub/cityUnit/model/addData`,
+      type: 'POST',
+      data: JSON.stringify(postData),
+      processData: false,
+      contentType: 'application/json',
+      success: (res) => {
+        if (res.statusCode == 200 && res.data) {
+          closeEditPanel(false);
+          this.getModelList();
+          layui.layer.msg('保存成功');
+        }
+      }
+    });
+  }
+
+  // 关闭编辑面板
+  function closeEditPanel(isCancel = true) {
+    var params = { lng: '', lat: '', alt: '', name: '', scale: '', heading: 0, pitch: 0, roll: 0 };
+    updateToView(params);
+    if (isCancel && activeModel) {
+      viewer.scene.primitives.remove(activeModel);
+      activeModel = null;
+    };
+    cancelEdit();
+    remove_handlers();
+    $('.model-edit').css({ 'display': 'none' });
+  }
+
+  // 触发面板更新
+  function updateToView(params) {
+    let modeInfo = params || getCurModelInfo();
+    modeInfo.name !== undefined && ($('.edit-name').val(modeInfo.name));
+    modeInfo.scale !== undefined && ($('.edit-scale').val(modeInfo.scale));
+    $('.edit-lng').val(modeInfo.lng - 0);
+    $('.edit-lat').val(modeInfo.lat - 0);
+    $('.edit-high').val(modeInfo.alt - 0);
+    headingSlider.slider('setValue', modeInfo.heading);
+    pitchSlider.slider('setValue', modeInfo.pitch);
+    rollSlider.slider('setValue', modeInfo.roll);
+  }
+
+  function getCurModelInfo() {
+    let modelMatrix = activeModel.modelMatrix;
+    let scale = Number($('.edit-scale')[0].value) || 1;
+    Cesium.Matrix4.multiplyByUniformScale(modelMatrix, 1 / scale, modelMatrix);
+    let position = transformCartesianToWGS84(Cesium.Matrix4.getTranslation(modelMatrix, new Cesium.Cartesian3()));
+    position.lng = position.lng.toFixed(5);
+    position.lat = position.lat.toFixed(5);
+    position.alt = position.alt.toFixed(2);
+    let result = { ...position };
+    var m1 = Cesium.Transforms.eastNorthUpToFixedFrame(
+      Cesium.Matrix4.getTranslation(modelMatrix, new Cesium.Cartesian3()),
+      Cesium.Ellipsoid.WGS84,
+      new Cesium.Matrix4(),
+    );
+    var m3 = Cesium.Matrix4.multiply(
+      Cesium.Matrix4.inverse(m1, new Cesium.Matrix4()),
+      modelMatrix,
+      new Cesium.Matrix4(),
+    );
+    var mat3 = Cesium.Matrix4.getMatrix3(m3, new Cesium.Matrix3());
+    var q = Cesium.Quaternion.fromRotationMatrix(mat3);
+    var hpr = Cesium.HeadingPitchRoll.fromQuaternion(q);
+    result.heading = Number(Cesium.Math.toDegrees(hpr.heading).toFixed(2));
+    result.pitch = Number(Cesium.Math.toDegrees(hpr.pitch).toFixed(2));
+    result.roll = Number(Cesium.Math.toDegrees(hpr.roll).toFixed(2));
+    result.scale = scale;
+    Cesium.Matrix4.multiplyByUniformScale(modelMatrix, result.scale, modelMatrix);
+    return result;
+  }
+
+  /**
+   * 新增按钮
+   * */
+  function createUpload() {
+    layui.use(function () {
+      var upload = layui.upload;
+      var $ = layui.$;
+      // 渲染
+      upload.render({
+        elem: '#ID-upload-demo-drag',
+        url: '',
+        auto: false,
+        bindAction: '',
+        acceptMime: '.jpg,.png',
+        choose: (obj) => {
+          obj.preview((index, file, result) => {
+            uploadData.thumFile = file;
+            $('#ID-upload-demo-preview').removeClass('layui-hide').find('img').attr('src', result);
+          });
+        }
+      });
+
+      upload.render({
+        elem: '#ID-upload-demo-choose',
+        url: '',
+        auto: false,
+        bindAction: '',
+        accept: 'file',
+        acceptMime: '.glb,.gltf',
+        choose: (obj) => {
+          obj.preview((index, file, result) => {
+            uploadData.url = file.name;
+            uploadData.modelFile = file;
+            $('.model-address')[0].value = file.name;
+          });
+        }
+      });
+    });
+  }
+
+  function openAddPanel() {
+    closeEditPanel();
+    m_end();
+    $('.add-model').css({ 'display': 'block' });
+  }
+
+  function closeAddPanel() {
+    var inputList = Array.from(document.querySelectorAll('.layui-input'));
+    inputList.forEach(item => {
+      item.value = '';
+    });
+    $('#ID-upload-demo-preview').addClass('layui-hide').find('img').attr('src', '');
+    $('.model-address')[0].value = '';
+    $('.add-model').css({ 'display': 'none' });
+  }
+
+  $('.img-mark').click(function (e) {
+    e.stopPropagation();
+    $('#ID-upload-demo-preview').addClass('layui-hide').find('img').attr('src', '');
+  });
+
+  // 上传模型
+  function uploadModel() {
+    var name = $('.model-name')[0].value;
+    var type = $('.model-type option:selected').text();
+    var typeId = $('.model-type option:selected').val();
+    var format = $('.model-format option:selected').text();
+    var { url, thumFile, modelFile } = uploadData;
+    if (!name || !type || !format || !url || !thumFile || !modelFile) {
+      layui.layer.msg('模型参数录入异常，请检查', { icon: 0 });
+      return;
+    }
+
+    var postData = new FormData();
+    postData.append('name', name);
+    postData.append('typeId', typeId);
+    postData.append('type', type);
+    postData.append('file', uploadData.modelFile);
+    postData.append('img', uploadData.thumFile);
+    $.ajax({
+      url: `${baseIp2}:8021/datahub/cityUnit/model/uploadModel`,
+      type: 'POST',
+      data: postData,
+      processData: false,
+      contentType: false,
+      success: (res) => {
+        if (res.statusCode == 200 && res.data) {
+          if (typeof res.data == 'object') {
+            closeAddPanel();
+            layui.layer.msg('上传成功');
+            getModelFindall();
+          } else {
+            layui.layer.msg(`${res.data}`);
+          }
+        } else {
+          layui.layer.msg('模型参数录入异常，请检查', { icon: 0 });
+        }
+      }
+    });
+  }
+
+  /**
+   * 删除按钮
+   * */
+  function removeModelCard() {
+    if (!selectModelCard) return;
+    $.ajax({
+      type: "GET",
+      url: `${baseIp2}:8021/datahub/cityUnit/model/deleteModel/${selectModelCard[0].statsData.id}`,
+      dataType: "JSON",
+      success: (res) => {
+        if (res.statusCode == 200 && res.data) {
+          getModelFindall();
+          layui.layer.msg('删除成功');
+        }
+      }
+    });
+  }
+
+
+  /**
+   * 模型数据
+   * */
+  function getModelList() {
+    $.ajax({
+      url: `${baseIp2}:8021/datahub/cityUnit/model/list`,
+      type: 'POST',
+      data: JSON.stringify({ page: 1, size: 10 }),
+      processData: false,
+      contentType: 'application/json',
+      // headers: {
+      //   'Accept': 'application/json, text/plain, */*'
+      // },
+      success: (res) => {
+        console.log(res);
+        $(`.mode-tbody`).empty();
+        if (res.statusCode == 200 && res.data && res.data.models && res.data.models.length) {
+          $('.empty-tips').css({ 'display': 'none' });
+          models = res.data.models;
+          res.data.models.forEach(item => {
+            const extend = JSON.parse(item.extend);
+            const trItem = `<tr>
+                  <td>${item.dataname}</td>
+                  <td>${item.type}</td>
+                  <td class="controls-btn">
+                    <button type="button" id="${extend.modelId}" class="layui-btn layui-btn-normal layui-btn-sm view-btn" onclick="viewModel(${extend.modelId})">
+                      <i class="layui-icon layui-icon-eye"></i>
+                    </button>
+
+                    <button type="button" id="${extend.modelId}" class="layui-btn layui-btn-normal layui-btn-sm" onclick="removeModelData(${extend.modelId})">
+                      <i class="layui-icon layui-icon-delete"></i>
+                    </button>
+                  </td>
+                </tr>`;
+            trItem.statsData = item;
+            $(`.mode-tbody`).append(trItem);
+          });
+        } else {
+          $('.empty-tips').css({ 'display': 'block' });
+        }
+      },
+      error: (err) => {
+        console.log(err);
+      }
+    });
+  }
+
+  function viewModel(id) {
+    let modeItem = null;
+    models.forEach(item => {
+      const extend = JSON.parse(item.extend);
+      if (extend.modelId && extend.modelId == id) {
+        modeItem = item;
+      }
+    });
+    const extend = JSON.parse(modeItem.extend);
+    var options = {
+      id: extend.id,
+      url: modeItem.url,
+      scale: extend.scale,
+      heading: extend.heading,
+      pitch: extend.pitch,
+      roll: extend.roll
+    };
+    var cartesian = Cesium.Cartesian3.fromDegrees(extend.lng, extend.lat, extend.alt);
+    removeModel(id);
+    loadModelGlb(options, cartesian, false, true);
+    flyToCameraView(extend);
+  }
+
+  function flyToCameraView(pos) {
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(pos.lng - 0, pos.lat - 0, pos.alt - 0), //设置位置
+      orientation: {
+        heading: Cesium.Math.toRadians(pos.heading - 0),
+        pitch: Cesium.Math.toRadians(pos.pitch - 0),
+        roll: Cesium.Math.toRadians(pos.roll - 0)
+      }
+    });
+  }
+
+  function removeModelData(id) {
+    $.ajax({
+      type: "GET",
+      url: `${baseIp2}:8021/datahub/cityUnit/model/deleteData/${id}`,
+      dataType: "JSON",
+      success: (res) => {
+        if (res.statusCode == 200 && res.data) {
+          layui.layer.msg('删除成功');
+          getModelList();
+          removeModel(id);
+        }
+      }
+    });
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    createMap();
+    createTool();
+    createUpload();
+    createSlider();
+    getModelFindall();
+    getModelList();
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

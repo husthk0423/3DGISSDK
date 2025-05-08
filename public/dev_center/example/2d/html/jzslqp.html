@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html style="overflow : hidden; ">
+
+<head>
+  <title>加载mapbox矢量切片</title>
+  <meta name="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport"
+    content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="../../css/leaflet.css" />
+  <link rel="stylesheet" href="../../css/rarefont.css" />
+</head>
+
+<body onload="init()" style="margin : 0; ">
+  <div id="map" class="map" style="position:absolute;bottom:0px;top:0px;width:100%">
+    <span id="jwd" style="position:absolute;bottom:10px;left:5px;z-index: 1000"></span>
+  </div>
+  <script src="../../js/leaflet/leaflet.js"></script>
+  <script src="/lib/jquery/jquery-1.11.1.js"></script>
+  <script src="../../js/leaflet/CustomWebSDK.min.js"></script>
+  <script>
+    function init() {
+      var map = L.map("map").setView([30.49, 114.42], 15);
+      L.tileLayer(
+        "https://api.mapbox.com/styles/v1/yqcim/cizh1ma3400ez2so5x1anhuzo/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoieXFjaW0iLCJhIjoiY2l6ZmhnZjExMDBhajJ4cGxnNGN5MnhpdCJ9.pcZtdfk8mSFboCdwqkvW6g", {
+          maxZoom: 18,
+          attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+            '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+            'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+          id: "mapbox.streets",
+        }
+      ).addTo(map);
+    }
+  </script>
+
+</body>
+
+</html>
+

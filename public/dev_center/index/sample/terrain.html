@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>rastertile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/geoway-gl.css' />
+    <script src="../dist/geoway-gl-dev.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+<body>
+<div id='map'></div>
+<script>
+
+
+    var map  = new Geoway.Map({
+        container: 'map',
+        pitch:30,
+        zoom: 12,
+        maxTileCacheSize:100,
+        center: [ 120.15, 30.268]
+    });
+
+    var terrain = new Geoway.TerrainLayer('http://47.97.123.81:8084/GeowaySDK/proxy.jsp?http://localhost:2820?T=MapWorld&L={z}&X={x}&Y={y}',{tileSize:256});
+
+    //底图图层
+    var xyz = new Geoway.XYZ(
+        ['http://t4.tianditu.com/DataServer?T=img_c&x={x}&y={y}&l={z}',
+            "http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&ratio=2&tilesize=256&clientVersion=jssdk_bate@1 openLayers 1.1.9&control={\"otherDisplay\":false,\"layers\":[{\"id\":\"交通_交通线_公路辅助\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_公路\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_匝道辅助\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_匝道\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_桥\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_地铁\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}},{\"id\":\"交通_交通线_铁路\",\"filters\":{},\"idFilter\":null,\"filterStr\":null,\"display\":true,\"color\":{\"color\":\"red\",\"opacity\":0}}],\"order\":[]}"],
+        {tileSize:256,layerOpacitys : [1.0,0.5]});
+    map.addLayer(xyz);
+
+
+    //label图层
+    var label = new Geoway.LabelLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=256',{tileSize:256});
+    label.addHeightLayer(terrain);
+    map.addLayer(terrain);
+    map.addLayer(label);
+
+
+    map.on('zoom',function(){
+        let z = map.transform._zoom;
+
+        if(map.transform.pitch < 10){
+            return;
+        }
+        let p = map.transform.getMaxPitch(z);
+        map.transform.pitch = p;
+    });
+
+</script>
+
+</body>
+</html>

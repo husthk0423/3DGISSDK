@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拾取白膜</title>
+    <link rel="stylesheet" href="../../css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../css/style.css" />
+    <script src="../../libs/Cesium/Cesium.js"></script>
+    <script src="../../libs/CustomCesiumSDK/Cesium-BaseMap.js"></script>
+    <script src="../../js/turf.min.js"></script>
+    <script src="../js/config.js"></script>
+
+    <style>
+      .control-item {
+        justify-content: flex-start;
+        margin-bottom: 5px;
+      }
+
+      .control-item span {
+        display: inline-block;
+        width: 150px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer" class="fullSize"></div>
+
+    <div class="tab-list tab-list-style">
+      <div class="control-body">
+        <div class="control-item">
+          <span>开关</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: enabled" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>glowOnly</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: glowOnly" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>对比度</span>
+          <input type="range" class="form-range" id="customRange" min="-255" max="255" step="0.01" data-bind="value: contrast, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-255)value=-255;if(value>255)value=255" data-bind="value: contrast, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>亮度</span>
+          <input type="range" class="form-range" id="customRange" min="-1" max="1" step="0.01" data-bind="value: brightness, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<-1)value=-1;if(value>1)value=1" data-bind="value: brightness, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>delta</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="5" step="0.01" data-bind="value: delta, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>5)value=5" data-bind="value: delta, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>sigma</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.01" data-bind="value: sigma, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>10)value=10" data-bind="value: sigma, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>selectedBloom</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.01" data-bind="value: selectedBloom, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>10)value=10" data-bind="value: selectedBloom, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>stepSize</span>
+          <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.001" data-bind="value: stepSize, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0.1)value=0.1;if(value>10)value=10" data-bind="value: stepSize, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>isSelected</span>
+          <div class="form-check form-switch switch-btn">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" data-bind="checked: isSelected" />
+          </div>
+        </div>
+
+        <div class="control-item">
+          <span>smoothWidth</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.01" data-bind="value: smoothWidth, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: smoothWidth, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>luminosityThreshold</span>
+          <input type="range" class="form-range" id="customRange" min="0" max="1" step="0.01" data-bind="value: luminosityThreshold, valueUpdate: 'input'" />
+          <input class="num-text" type="number" oninput="if(value<0)value=0;if(value>1)value=1" data-bind="value: luminosityThreshold, valueUpdate: 'input'" />
+        </div>
+
+        <div class="control-item">
+          <span>color</span>
+          <input type="color" data-bind="value: bloomColor, valueUpdate: 'input'" />
+          <span class="num-text2" data-bind="text:bloomColor"></span>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var viewer;
+    var gzTiles;
+    var floorHeight = 4; // 高度缩放比例,即每层高 4.0 米
+    var targetBlooms = null;
+    var glowPrimitive = null;
+
+    var viewModel = {
+      enabled: true,
+      glowOnly: false,
+      contrast: 119,
+      brightness: 0.05,
+      delta: 0.9,
+      sigma: 3.78,
+      selectedBloom: 1.0,
+      stepSize: 5,
+      isSelected: false,
+      smoothWidth: 0.6,
+      luminosityThreshold: 0.0,
+      bloomColor: '#84852b'
+    };
+
+    function createMap() {
+      viewer = new Cesium.Viewer('cesiumContainer', {
+        selectionIndicator: false,
+        useBrowserRecommendedResolution: false,
+        animation: false, // 是否显示动画控件
+        baseLayerPicker: false, // 是否显示图层选择控件
+        geocoder: false, // 是否显示地名查找控件
+        timeline: false, // 是否显示时间线控件
+        sceneModePicker: false, // 是否显示投影方式控件
+        navigationHelpButton: false, // 是否显示帮助信息控件
+        infoBox: false, // 是否显示点击要素之后显示的信息
+        imageryProvider: false
+      });
+      viewer.scene.primitives.destroyPrimitives = false;
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+
+      var tiandituImageLayer = new Cesium.ImageryLayer(
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+          layer: 'tdtImg_c',
+          style: 'default',
+          format: 'tiles',
+          tileMatrixSetID: 'c',
+          subdomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
+          maximumLevel: 17
+        })
+      );
+      viewer.imageryLayers.add(tiandituImageLayer);
+
+      let houseTileServiceImageryProvider = new Cesium.HouseTileServiceImageryProvider(viewer, {
+        url: `http://1.119.169.71:10012/mapserver/data/湖南数据/getData?x={x}&y={y}&l={z}&styleId=湖南数据&tilesize=256`,
+        tilingScheme: new Cesium.GeographicTilingScheme({ numberOfLevelZeroTilesX: 2, numberOfLevelZeroTilesY: 1 }),
+        tilingScheme: new Cesium.GeographicTilingScheme({ numberOfLevelZeroTilesX: 2, numberOfLevelZeroTilesY: 1 }),
+        tileMatrixLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'],
+        // translucentMaterial: true,
+        maximumLevel: 20,
+        tileWidth: 256,
+        tileHeight: 256,
+        needDecode: false, // 是否需要数据解码
+        // translucent: true,
+        // opacity: 0.8,
+        dataType: 'binary',
+        fillColor: '#FFFFFF', // 房屋颜色
+        translucent: false,
+        opacity: 1, // 房屋透明度
+        filterLayerId: ['湖南数据'], // 房屋图层
+        heightProperty: 'floor', // 房屋高度字段
+        heightScale: `${floorHeight}`,
+        showLevel: 13
+      });
+      viewer.imageryLayers.addImageryProvider(houseTileServiceImageryProvider);
+
+      // 设置位置
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(123.43523876395695, 41.7502997544061, 369.88925645444976), //设置位置
+        orientation: {
+          heading: Cesium.Math.toRadians(34.143032941175385),
+          pitch: Cesium.Math.toRadians(-21.588452429070088),
+          roll: 0
+        }
+      });
+    }
+
+    function pickMoudel() {
+      Cesium.knockout.track(viewModel);
+      const toolbar = document.querySelector('.tab-list');
+      Cesium.knockout.applyBindings(viewModel, toolbar);
+      for (const name in viewModel) {
+        if (viewModel.hasOwnProperty(name)) {
+          Cesium.knockout.getObservable(viewModel, name).subscribe(updatePostProcess);
+        }
+      }
+
+      var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+      var isClick = false;
+      handler.setInputAction(e => {
+        if (isClick) return;
+        isClick = true;
+        let cartesian = null;
+        let primitive = viewer.scene.pick(e.position);
+        if (!primitive) return (isClick = false);
+        cartesian = viewer.scene.pickPosition(e.position);
+        if (!cartesian) return (isClick = false);
+        const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        const lng = Cesium.Math.toDegrees(cartographic.longitude);
+        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+        const height = cartographic.height;
+        const parms = { lng, lat, height, cartesian };
+
+        const wkt = `POINT(${lng} ${lat})`;
+        const url = `http://1.119.169.71:10012/mapserver/湖南数据/湖南数据/query?withGeometry=true&_notCut=true&spatialFilter=POINT(${lng} ${lat})`;
+        queryData(url).then(
+          function (data) {
+            console.log(data);
+            if (!data || !data.length) return (isClick = false);
+            if (glowPrimitive) {
+              viewer.scene.primitives.remove(glowPrimitive);
+              glowPrimitive = null;
+            }
+
+            var geom = data[0].geom;
+            var wkt = new Cesium.Wkt();
+            wkt.read(geom);
+            var positions = wkt.components[0][0].map(e => {
+              return [e.x, e.y];
+            });
+            var polygonF = turf.polygon([positions]);
+            var buffered = turf.buffer(polygonF, 1, { units: 'meters' });
+            var coordinates = buffered.geometry.coordinates;
+            var bufferPosition = coordinates[0];
+            var newPositions = [].concat(...bufferPosition);
+
+            glowPrimitive = new Cesium.Primitive({
+              geometryInstances: [
+                new Cesium.GeometryInstance({
+                  geometry: new Cesium.PolygonGeometry({
+                    polygonHierarchy: {
+                      positions: Cesium.Cartesian3.fromDegreesArray(newPositions)
+                    },
+                    height: 0,
+                    extrudedHeight: (data[0].floor + 1) * floorHeight
+                  }),
+                  attributes: {
+                    color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.fromCssColorString('white').withAlpha(0.5))
+                  }
+                })
+              ],
+              appearance: new Cesium.PerInstanceColorAppearance({
+                translucent: false,
+                closed: true
+              })
+            });
+            viewer.scene.primitives.add(glowPrimitive);
+            updatePostProcess();
+            isClick = false;
+          }.bind(this)
+        );
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    }
+
+    function queryData(url) {
+      var resource = new Cesium.Resource({ url: url });
+      resource.request.throttle = false;
+      resource.request.throttleByServer = false;
+      resource.request.type = 1;
+      return resource.fetchJson();
+    }
+
+    function updatePostProcess() {
+      if (!glowPrimitive) return;
+      !targetBlooms && (targetBlooms = viewer.postProcessStages.add(Cesium.PostProcessStageLibrary.createTargetBloomStage()));
+      targetBlooms.selected = [glowPrimitive];
+      targetBlooms.enabled = Boolean(viewModel.enabled);
+      targetBlooms.uniforms.glowOnly = Boolean(viewModel.glowOnly);
+      targetBlooms.uniforms.contrast = Number(viewModel.contrast);
+      targetBlooms.uniforms.brightness = Number(viewModel.brightness);
+      targetBlooms.uniforms.delta = Number(viewModel.delta);
+      targetBlooms.uniforms.sigma = Number(viewModel.sigma);
+      targetBlooms.uniforms.selectedBloom = Number(viewModel.selectedBloom);
+      targetBlooms.uniforms.stepSize = Number(viewModel.stepSize);
+      targetBlooms.uniforms.isSelected = Boolean(viewModel.isSelected);
+      targetBlooms.uniforms.smoothWidth = Number(viewModel.smoothWidth);
+      targetBlooms.uniforms.luminosityThreshold = Number(viewModel.luminosityThreshold);
+      targetBlooms.uniforms.bloomColor = Cesium.Color.fromCssColorString(viewModel.bloomColor);
+    }
+
+    function startup() {
+      'use strict';
+      createMap();
+      pickMoudel();
+    }
+    if (typeof Cesium !== 'undefined') {
+      startup();
+    }
+  </script>
+</html>

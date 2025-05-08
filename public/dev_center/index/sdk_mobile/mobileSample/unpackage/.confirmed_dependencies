@@ -1,0 +1,28 @@
+{
+  "debug/geowayGPS.html": {
+    "resources": [
+      "dist/geoway-gl-dev.js",
+      "dist/geoway-gl.css",
+      "img/navigation.png"
+    ],
+    "refer": []
+  },
+  "debug/geowayGPS1.html": {
+    "resources": [
+      "dist/mapbox-gl.css",
+      "dist/mapbox-gl-dev.js",
+      "img/navigation.png",
+      "debug/img/navigation.png"
+    ],
+    "refer": []
+  },
+  "debug/geowayFilter.html": {
+    "resources": [
+      "js/FilterLayer.js",
+      "dist/geoway-gl-dev.js",
+      "js/Filter.js",
+      "dist/geoway-gl.css",
+      "js/GeowayUtil.js"
+    ]
+  }
+}

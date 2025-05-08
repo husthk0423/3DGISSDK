@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多屏对比</title>
+  <link rel="stylesheet" href="../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/style.css" />
+  <script src="../../libs/Cesium/Cesium.js"></script>
+  <script src="../../libs/jquery-3.1.1.min.js"></script>
+  <script src="../js/config.js"></script>
+
+  <style>
+    body {
+      display: flex;
+    }
+
+    #cesiumContainerL,
+    #cesiumContainerR {
+      width: 50%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .hide {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainerL"></div>
+  <div id="cesiumContainerR"></div>
+
+  <div class="loading-box">
+    <div class="loading">
+      <span>正在加载...</span>
+    </div>
+  </div>
+</body>
+
+<script>
+  var viewerL;
+  var viewerR;
+  var isLeftTrigger = false;
+  var isRightTrigger = false;
+  var isloadingL = true;
+  var isloadingR = true;
+
+  function createMap(cesiumId, around) {
+    var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
+      url: terrainUrl
+    });
+
+    var viewer = new Cesium.Viewer(cesiumId, {
+      terrainProvider: cesiumTerrainProvider, // 加载地形
+      selectionIndicator: false, // 是否获取选择周指示器
+      useBrowserRecommendedResolution: false, // 是否以浏览器建议的分辨率渲染
+      animation: false, // 是否显示动画控件
+      baseLayerPicker: false, // 是否显示图层选择控件
+      geocoder: false, // 是否显示地名查找控件
+      timeline: false, // 是否显示时间线控件
+      sceneModePicker: true, // 是否显示投影方式控件
+      navigationHelpButton: false, // 是否显示帮助信息控件
+      imageryProvider: false, // 不加载cesium提供的图层
+      infoBox: false, // 是否显示点击要素之后显示的信息
+    });
+
+    const tiandituImageLayer = new Cesium.ImageryLayer(new Cesium.WebMapTileServiceImageryProvider({
+      url: "http://{s}.tianditu.gov.cn/img_c/wmts?service=wmts&request=GetTile&version=1.0.0" +
+                "&LAYER=img&tileMatrixSet=c&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}" +
+                "&style=default&format=tiles&tk=c65984b10a0c04f9a5a200a25d51bf18",
+      layer: "tdtImg_c",
+      style: "default",
+      format: "tiles",
+      tileMatrixSetID: "c",
+      subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      tileMatrixLabels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
+      maximumLevel: 17,
+    }));
+    viewer.imageryLayers.add(tiandituImageLayer);
+
+    const tile3d = new Cesium.Cesium3DTileset({
+      url: modelConfig.cyy3dtilesUrl.tilesetUrl,
+      showFS: false,
+      showVS: false,
+    });
+
+    tile3d.readyPromise.then(tileset => {
+      viewer.scene.primitives.add(tile3d);
+      cesiumId == 'cesiumContainerL' ? isloadingL = false : isloadingR = false;
+    });
+
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(114.31237412485905, 35.71741990170554, 153.40526987345189),
+      orientation: {
+        heading: Cesium.Math.toRadians(38.07402339367952),
+        pitch: Cesium.Math.toRadians(-18.3521067991518),
+        roll: Cesium.Math.toRadians(0)
+      }
+    });
+    return viewer;
+  }
+
+  // 操作右侧 viewer 时与左侧同步
+  function syncLeftViewer() {
+    var canvasL = viewerL.scene.canvas;
+    var handlerL = new Cesium.ScreenSpaceEventHandler(canvasL);
+    handlerL.setInputAction(() => {
+      isLeftTrigger = true;
+      isRightTrigger = false;
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    viewerL.camera.changed.addEventListener(syncViewerL);
+    viewerL.scene.preRender.addEventListener(syncViewerL);
+  }
+
+  function syncViewerL() {
+    if (isLeftTrigger) {
+      viewerR.camera.flyTo({
+        destination: viewerL.camera.position,
+        orientation: {
+          heading: viewerL.camera.heading,
+          pitch: viewerL.camera.pitch,
+          roll: viewerL.camera.roll
+        },
+        duration: 0.0
+      });
+    }
+  }
+
+  // 操作左侧 viewer 时与右侧同步
+  function syncRightViewer() {
+    var canvasR = viewerR.scene.canvas;
+    var handlerR = new Cesium.ScreenSpaceEventHandler(canvasR);
+    handlerR.setInputAction(() => {
+      isLeftTrigger = false;
+      isRightTrigger = true;
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    viewerR.camera.changed.addEventListener(syncViewerR);
+    viewerR.scene.preRender.addEventListener(syncViewerR);
+  }
+
+  function syncViewerR() {
+    if (isRightTrigger) {
+      viewerL.camera.flyTo({
+        destination: viewerR.camera.position,
+        orientation: {
+          heading: viewerR.camera.heading,
+          pitch: viewerR.camera.pitch,
+          roll: viewerR.camera.roll
+        },
+        duration: 0.0
+      });
+    }
+  }
+
+  function startup(Cesium) {
+    'use strict';
+    viewerL = createMap('cesiumContainerL');
+    viewerR = createMap('cesiumContainerR');
+    syncLeftViewer();
+    syncRightViewer();
+
+    var timer = setInterval(() => {
+      if (!isloadingL && !isloadingR) {
+        clearInterval(timer);
+        $('.loading-box').addClass('hide');
+      }
+    }, 50);
+  }
+
+  if (typeof Cesium !== 'undefined') {
+    startup();
+  }
+</script>
+
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>rastertile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/geoway-gl.css' />
+    <script src="../dist/geoway-gl-dev.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+<body>
+<div id='map'></div>
+<script>
+    var map  = new Geoway.Map({
+        container: 'map',
+        zoom: 18,
+        pitch:51.99999999999999,
+        //bearing:136.14875283446713,
+        maxTileCacheSize:100,
+        center: [ 120.14297618329215,30.273775307345794]
+    });
+
+    map.setLightIntensity(0.3);
+
+    var xyz = new Geoway.XYZLayer(['http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512&ratio=1'],
+        {tileSize:512});
+    map.addLayer(xyz);
+
+    //label图层
+    var label = new Geoway.LabelLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512',{tileSize:512});
+    map.addLayer(label);
+
+    var fillExtrusionLayer = new Geoway.FillExtrusionLayer('http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017&tilesize=512',
+        {tileSize:512,heightProperty : 'height',roofColor:'#ffffff',wallColor:'#eeeeee',fillAlpha : 1.0});
+    //map.addLayer(fillExtrusionLayer);
+
+    var fillExtrusionGeoSourceLayer = new Geoway.FillExtrusionGeoSourceLayer(map,{heightPropertyIndex : 0});
+    let feature1 = {};
+    feature1.properties = [10];
+    feature1.geometry = "POLYGON((120.14207 30.27407,120.14327 30.27407,120.14327 30.27257,120.14207 30.27257,120.14207 30.27407),(120.14297 30.27377,120.14247 30.27377,120.14247 30.27337,120.14297 30.27337,120.14297 30.27377),(120.14297 30.27327,120.14247 30.27327,120.14247 30.27300,120.14297 30.27300,120.14297 30.27327))";
+    feature1.wallColor = '#eeee00';
+    feature1.roofColor = '#ff0000';
+    feature1.fillAlpha = 1.0;
+    fillExtrusionGeoSourceLayer.addFeature(feature1);
+
+    let feature2 = {};
+    feature2.properties = [20];
+    feature2.geometry = "POLYGON((120.14597 30.27377,120.14547 30.27377,120.14547 30.27307,120.14597 30.27307,120.14597 30.27377))";
+    feature2.wallColor = '#0eeeee';
+    feature2.roofColor = '#ff0fff';
+    feature2.fillAlpha = 0.5;
+    fillExtrusionGeoSourceLayer.addFeature(feature2);
+
+    map.enableSelectFeature();
+    map.setSelectedColor('#ff0000');
+    map.setSelectedAlpha(1.0);
+
+    //http://ditu.zjzwfw.gov.cn/mapserver/data/zjvmap/getData?x=13660&y=2718&l=15&styleId=tdt_biaozhunyangshi_2017&tilesize=512&ratio=1
+</script>
+
+</body>
+</html>

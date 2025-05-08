@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/map-gl.css' />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+
+<body onload="onLoad()">
+<div id='map'></div>
+<script src="/index/sdk_mobile/mobileSample/dist/mapgl-gl-dev.js"></script>
+<script src="/index/sdk_mobile/mobileSample/js/Filter.js"></script>
+<script src="/index/sdk_mobile/mobileSample/js/FilterLayer.js"></script>
+<script src="/index/sdk_mobile/mobileSample/js/jquery-3.1.1.js"></script>
+<script>
+
+    function onLoad() {
+        var sheet = {
+            'layers': [],
+            'metadata': [],
+            'sources': {},
+            'draft': false,
+            'id': 'streets-v9',
+            'version': 8,
+            "light": {
+                "anchor": "viewport",
+                "color": "white",
+                "intensity": 0.3
+            },
+            'glyphs': 'http://ditu.zjzwfw.gov.cn/mobileSample/debug/font/{range}.pbf'
+        };
+        var map = window.map = new mapgl.Map({
+            container: 'map',
+            zoom: 17,
+            center: [ 120.15, 30.268],
+            hash: false,
+            style: sheet
+        });
+
+        map.on('load', function () {
+            //底图数据源
+            var source = {
+                "type": "raster",
+                "tiles": ['http://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017'],
+                "tileSize": 256
+            };
+
+
+            //底图图层
+            var layer = {
+                "id": "wms-test-layer",
+                "type": "raster",
+                "source": source,
+                "paint": {}
+            };
+            //加入底图图层到map中
+            map.addLayer(layer);
+
+
+            //注记数据源,tiles为获取注记数据的url
+            var symbolSource = {
+                "type": "vector",
+                "styleUrl":'http://ditu.zjzwfw.gov.cn/mobileSample/style/labelStyle', //请求注记样式文件的接口
+                "styleId":'style',//注记样式文件的id
+                "isLable":true,
+                "tiles": ['http://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x={x}&y={y}&l={z}&styleId=tdt_biaozhunyangshi_2017'],
+                "tileSize": 256
+            };
+
+            map.addSource('symbolSource',symbolSource);
+
+
+
+            var buildings = {
+                'id': '3d-buildings',
+                'source': 'symbolSource',
+                'source-layer': '面状居民地',
+                'type': 'fill-extrusion',
+                'minzoom': 15,
+                'paint': {
+                    'fill-extrusion-color': '#aaa',
+                    'fill-extrusion-height': {
+                        'type': 'identity',
+                        'property': 'height'
+                    },
+                    'fill-extrusion-opacity': 0.8
+                }
+            };
+
+            //立体房屋
+            map.addLayer(buildings);
+        });
+
+
+    }
+</script>
+</body>
+</html>

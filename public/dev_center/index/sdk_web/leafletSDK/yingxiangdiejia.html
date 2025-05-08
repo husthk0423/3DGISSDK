@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html  style="overflow : hidden; ">
+<head>
+    <title>影像叠加叠加</title>
+    <meta name="keywords" content="矢量瓦片,矢量索引">
+    <meta name="description" content="矢量瓦片">
+    <meta name="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,target-densitydpi=high-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" href="/index/sdk_web/leafletSDK/css/leaflet.css" />
+
+    <script src="/index/sdk_web/leafletSDK/js/jquery-3.1.1.js"></script>
+    <script src="/index/sdk_web/leafletSDK/js/uuid.js"></script>
+    <script src="/index/sdk_web/leafletSDK/js/leaflet.js"></script>
+    <script src="/index/sdk_web/leafletSDK/js/CustomWebSDK.min.js"></script>
+
+</head>
+<style>
+    .maptype-container{
+        position:absolute; 
+        right: 20px; 
+        bottom: 5px; 
+        z-index: 10000;    
+        font-size: 12px;
+        color: #f9eded;
+    }
+    .image {
+        left: 5px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 -120px;
+        right: 10px;
+        z-index: 4;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+    }
+    .vector {
+        left: 5px;
+        background: url(./images/maptype.png) no-repeat;
+        background-position: 0 0px;
+        right: 5px;
+        z-index: 3;
+        width: 88px;
+        height: 60px;
+        float: right;
+        position: relative;
+        opacity: 1;
+    }
+    dt {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        font-size: 12px;
+        text-align: center;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWNicJ/XAAACoAFoZOWciwAAAABJRU5ErkJggg==);
+    }
+    dt.on{
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4AWNiaAAAAIkAgxImDHoAAAAASUVORK5CYII=);
+    }
+    .label {
+        bottom: 58px;
+        right: 20px;
+        height: 20px;
+        width: 88px;
+        position: absolute;
+        z-index: 200000000000000000000000;
+        font-size: 12px;
+        color: #fff;
+    }
+    input#v-check {
+        position: absolute;
+        right: 56px;
+    }
+    span {
+        height: 20px;
+        width: 80px;
+        position: absolute;
+        right: -23px;
+    }
+</style>
+<body onload="init()"  style="margin : 0; ">
+<div id="map" class="map" style ="position:absolute;bottom:0px;top:0px;width:100%"></div>
+<div class="maptype-container">
+    <div class="maptype">
+        <dl class="vector">
+            <dt>叠加矢量</dt>
+        </dl>
+    </div>
+</div>
+<div class="label">
+    <input type="checkbox" id="v-check" checked="checked"/>
+    <span>显示标注</span>
+</div>
+
+<script>
+    var map = null;
+    var _layer = null;
+    var _label = null;
+    var clickLyr = null;
+    function init(){
+        map = L.map('map',{crs:L.CRS.CustomEPSG4326,center: {lon:120.15, lat:30.268},maxZoom: 20,zoom:18});
+        // 影像
+        var imageLyr = L.tileLayer("http://t0.tianditu.com/img_c/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=c&TileMatrix={z}&TileRow={y}&TileCol={x}&FORMAT=tiles");
+        map.addLayer(imageLyr);
+        this.addVector();
+        this.clickVlyr();
+        this.addLabel();
+
+        this.bindEvent();
+    }
+    function addVector(){
+        if(_layer){
+            _layer.cancelHighlight();
+            map.removeLayer(_layer);
+            _layer = null;
+            return;
+        }
+        //添加底图
+        var layer = new L.GXYZ('https://ditu.zjzwfw.gov.cn/mapserver/vmap/zjvmap/getMAP?x={x}&y={y}&l={z}&styleId=img_road',{tileSize:256,maxZoom: 20});
+        map.addLayer(layer);
+        _layer = layer;
+    }
+    function addLabel(){
+        var labelLayer = new L.GWVTAnno({tileSize:256});
+        var dataSource = new Custom.URLDataSource();
+        dataSource.url = 'https://ditu.zjzwfw.gov.cn/mapserver/label/zjvmap/getDatas?x=${x}&y=${y}&l=${z}&styleId=img_road';
+        labelLayer.addDataSource(dataSource);
+        
+        map.addLayer(labelLayer);
+        _label = labelLayer;
+    }
+    function clickVlyr(){
+        map.on('click', function(e) {
+            var latlng =e.latlng;
+            var event = e.originalEvent;
+            //拾取要素
+            var features = _layer.getFeatureByXY(event.x,event.y,function(layerFeatures){
+                //高亮
+                delete layerFeatures['政区境界_行政区划面'];
+                _layer.highlightFeatures(layerFeatures,{color:"#ff00ff",opacity:0.4})
+            });
+        });
+    }
+    function bindEvent(){
+        var that = this;
+        $(".label").click(function(){
+            if($("#v-check").is(":checked")){
+                that.addLabel();
+            }else{
+                map.removeLayer(_label);
+                _label = null;
+            }
+        });
+        $(".vector").click(function(){
+            $("dt").toggleClass("on");
+            that.addVector();
+        });
+    }
+
+</script>
+
+</body>
+</html>
