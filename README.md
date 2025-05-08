@@ -20,7 +20,7 @@
 <img width="1280" alt="微信图片_20250508184152" src="https://github.com/user-attachments/assets/368420d3-180d-46a4-95a0-64c80660a159" /> 
 
 ## 联系  
- ## 1 完整版本、工作内推（武汉） 
+ ## 1 完整版本(SDK)、工作内推（武汉） 
 
  <img src="https://github.com/user-attachments/assets/16a23a4f-2687-4848-8be7-b39eae562ee1" width="400" height="400"> 
  
