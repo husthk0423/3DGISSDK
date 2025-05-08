@@ -27,22 +27,6 @@ express+cesium
 
 ### 部分shader代码（多个倾斜数据压平）    
 ```
-uniform int u_dataTexture_width;
-uniform int u_dataTexture_height;
-vec4 getClippingPlane(
-    highp sampler2D packedClippingPlanes,
-    int clippingPlaneNumber,
-    mat4 transform
-) {
-    int pixY = clippingPlaneNumber / u_dataTexture_width;
-    int pixX = clippingPlaneNumber - (pixY * u_dataTexture_width);
-    float pixelWidth = 1.0 / float(u_dataTexture_width);
-    float pixelHeight = 1.0 / float(u_dataTexture_height);
-    float u = (float(pixX) + 0.5) * pixelWidth; // sample from center of pixel
-    float v = (float(pixY) + 0.5) * pixelHeight;
-    vec4 plane = texture2D(packedClippingPlanes, vec2(u, v));
-    return czm_transformPlane(plane, transform);
-}
 float clip(vec3 positionMC,inout float deltaY,vec4 fragCoord, sampler2D clippingPlanes, mat4 clippingPlanesMatrix, sampler2D multiClippingPlanesLength,inout bool UNION_State)
     {
     vec4 position = czm_windowToEyeCoordinates(fragCoord);
@@ -100,17 +84,7 @@ float clip(vec3 positionMC,inout float deltaY,vec4 fragCoord, sampler2D clipping
     }
     return clipAmount;
     }
-void modelMultiClippingPlanesStage(vec3 positionMC,inout vec4 color,inout bool UNION_State)
-{
-    float deltaY;
-    float clipDistance = clip(positionMC,deltaY,gl_FragCoord, u_model_clippingPlanes, u_model_clippingPlanesMatrix,u_multiClippingPlanesLength,UNION_State);
-    vec4 clippingPlanesEdgeColor = vec4(0.5922, 0.902, 0.5647, 1.0);
-    clippingPlanesEdgeColor.rgb = clippingPlanesEdgeColor.xyz;
-    float clippingPlanesEdgeWidth = u_clippingPlanesEdgeStyle.a;
-    if (clipDistance > 0.0 && clipDistance < clippingPlanesEdgeWidth) {
-        color = clippingPlanesEdgeColor;
-    }
-}
+
 ```
 ### 快速开始 
 ```
@@ -121,7 +95,6 @@ npm run start
 <img width="844" alt="微信图片_20250508185236" src="https://github.com/user-attachments/assets/7cf61d7e-9428-4989-9627-e4567c854f3b" />
 
 
-## 应用场景
 ## 产品截图   
 <img width="1280" alt="微信图片_20250508184709" src="https://github.com/user-attachments/assets/ee013799-0b71-49c2-b145-64064634b200" />
 
